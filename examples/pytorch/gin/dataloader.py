@@ -26,6 +26,7 @@ def collate(samples):
     return batched_graph, labels
 
 
+
 class GraphDataLoader():
     def __init__(self,
                  dataset,

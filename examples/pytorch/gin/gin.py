@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dgl.nn.pytorch.conv import GINConv
 from dgl.nn.pytorch.glob import SumPooling, AvgPooling, MaxPooling
-
+import numpy as np
 
 class ApplyNodeFunc(nn.Module):
     """Update the node feature hv with MLP, BN and ReLU."""
@@ -113,6 +113,7 @@ class GIN(nn.Module):
         super(GIN, self).__init__()
         self.num_layers = num_layers
         self.learn_eps = learn_eps
+        self.hiddenRepresentationOfGraph = torch.empty((32,64))
 
         # List of MLPs
         self.ginlayers = torch.nn.ModuleList()
@@ -151,10 +152,12 @@ class GIN(nn.Module):
         else:
             raise NotImplementedError
 
+    def gethiddenRepresentationOfGraph(self):
+        return self.hiddenRepresentationOfGraph
+
     def forward(self, g, h):
         # list of hidden representation at each layer (including input)
         hidden_rep = [h]
-
         for i in range(self.num_layers - 1):
             h = self.ginlayers[i](g, h)
             h = self.batch_norms[i](h)
@@ -166,6 +169,9 @@ class GIN(nn.Module):
         # perform pooling over all nodes in each graph in every layer
         for i, h in enumerate(hidden_rep):
             pooled_h = self.pool(g, h)
+
             score_over_layer += self.drop(self.linears_prediction[i](pooled_h))
+            if i ==  len(hidden_rep) - 1:
+                self.hiddenRepresentationOfGraph = torch.cat((self.hiddenRepresentationOfGraph, pooled_h), dim=0)
 
         return score_over_layer

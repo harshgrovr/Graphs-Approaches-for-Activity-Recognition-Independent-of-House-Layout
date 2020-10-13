@@ -206,6 +206,8 @@ class GINDataset(DGLBuiltinDataset):
                         print('this node has {} edgs.'.format(
                             nrow[1]))
 
+                print('\n\n\nvalue is',nattrs, 'and type is', type(nattrs))
+                print('\n\n\n')
                 if nattrs != []:
                     nattrs = np.stack(nattrs)
                     g.ndata['attr'] = F.tensor(nattrs)
