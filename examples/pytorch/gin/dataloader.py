@@ -6,13 +6,15 @@ PyTorch compatible dataloader
 import math
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
-from torch.utils.data.sampler import SubsetRandomSampler
+from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data.sampler import SubsetRandomSampler, WeightedRandomSampler
 from sklearn.model_selection import StratifiedKFold
 import dgl
 
 
 # default collate function
+
+
 def collate(samples):
     # The input `samples` is a list of pairs (graph, label).
     graphs, labels = map(list, zip(*samples))
@@ -24,8 +26,6 @@ def collate(samples):
     batched_graph = dgl.batch(graphs)
     labels = torch.tensor(labels)
     return batched_graph, labels
-
-
 
 class GraphDataLoader():
     def __init__(self,
@@ -54,8 +54,9 @@ class GraphDataLoader():
         else:
             raise NotImplementedError()
 
-        train_sampler = SubsetRandomSampler(train_idx)
-        valid_sampler = SubsetRandomSampler(valid_idx)
+
+        train_sampler = self.weightedRandomSampler(labels)
+        valid_sampler = self.weightedRandomSampler(labels)
 
         self.train_loader = DataLoader(
             dataset, sampler=train_sampler,
@@ -83,6 +84,17 @@ class GraphDataLoader():
             len(train_idx), len(valid_idx))
 
         return train_idx, valid_idx
+
+    def weightedRandomSampler(self, labels):
+        #Class Weighting
+        labels_unique, counts = np.unique(labels, return_counts=True)
+        print('Unique labels: {}'.format(labels_unique))
+        class_weights = [sum(counts)/c for c in counts]
+        # Assign weight to each input sample
+        example_weights = [class_weights[e] for e in labels]
+        sampler = WeightedRandomSampler(example_weights, len(labels))
+        return sampler
+
 
     def _split_rand(self, labels, split_ratio=0.7, seed=0, shuffle=True):
         num_entries = len(labels)

@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 
-from dgl.data.gindt import GINDataset
+
 from dataloader import GraphDataLoader, collate
 from parser import Parser
 from gin import GIN
@@ -18,6 +18,7 @@ import torch.nn.functional as F
 import dgl
 
 config = {
+    "batch_size": 32,
     "ActivityIdList":
         [{'name': 'brushTeeth', 'id': 0}, {'name': 'eatBreakfast', 'id': 1}, {'name': 'eatDinner', 'id': 2},
          {'name': 'getDressed', 'id': 3}, {'name': 'getDrink', 'id': 4}, {'name': 'goToBed', 'id': 5},
@@ -246,6 +247,7 @@ def main(args):
             .format(valid_loss, 100. * valid_acc, val_f1_score))
 
         print('val per_class accuracy', val_per_class_accuracy)
+
 
         if epoch % 9 == 0:
             checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
