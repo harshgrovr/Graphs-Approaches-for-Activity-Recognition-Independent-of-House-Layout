@@ -1,0 +1,71 @@
+{
+"ordonezB": 
+[
+    {"BedPressureRight":[ {"name": "BedPressureBedroom_1"}, {"type": "Pressure Sensor"}  ] },
+    {"BasinBathroomPIR":[ {"name": "BasinPIRBathroom_3"}, {"type": "Motion PIR Sensor"}  ] },
+    {"ToiletFlushSensor":[ {"name": "ToiletFlushBathroom_4"}, {"type": "Flush Sensor"}  ] },
+    {"ShowerBathroomPIR":[ {"name": "ShowerPIRBathroom_5"}, {"type": "Motion PIR Sensor"}  ] },
+    {"FridgeMagnetic":[ {"name": "FridgeMagneticKitchen_6"}, {"type": "Magnetic Sensor"}  ] },
+    {"GroceriesCupboard":[ {"name": "CupboardMagneticKitchen_7"}, {"type": "Magnetic Sensor"}  ] },
+    {"Microwave":[ {"name": "MicrowaveElectricKitchen_10"}, {"type": "Appliance Status Sensor"}  ] },
+    {"ToiletSeatPressureSensor":[ {"name": "SeatPressureLiving_11"}, {"type": "Pressure Sensor"}  ] },
+    {"FrontDoorMagnetic":[ {"name": "MaindoorMagneticEntrance_12"}, {"type": "Magnetic Sensor"}  ] },
+    {"LivingRoomDoorPIR":[ {"name": "DoorPIRLiving_13"}, {"type": "Motion PIR Sensor"}  ] },
+    {"KitchenRoomDoorPIR":[ {"name": "DoorPIRKitchen_14"}, {"type": "Motion PIR Sensor"}  ] },
+    {"BedRoomDoorPIR":[ {"name": "DoorPIRBedroom_15"}, {"type": "Motion PIR Sensor"}  ] }
+],
+
+"houseB": 
+[
+    {"BedroomMovementPIR":[ {"name": "BedroomMovement_16"}, {"type": "Motion PIR Sensor"}  ] },
+    {"BedPressureRight":[ {"name": "BedPressureRight_12"}, {"type": "Pressure Sensor"}  ] },
+    {"BedPressureLeft":[ {"name": "BedPressureLeft_13"}, {"type": "Pressure Sensor"}  ] },
+    {"BedroomDresserMagnetic":[ {"name": "BedroomDresser_18"}, {"type": "Magnetic Sensor"}  ] },
+    {"BedRoomDoorMagnetic":[ {"name": "BedroomDoor_10"}, {"type": "Magnetic Sensor"}  ] },
+    {"ShowerBathroomPIR":[ {"name": "BathroomPIR_19"}, {"type": "Motion PIR Sensor"}  ] },
+    {"ToiletFlushSensor":[ {"name": "ToiletFlush_6"}, {"type": "Flush Sensor"}  ] },
+    {"KitchenSinkFloat":[ {"name": "SinkFloat_21"}, {"type": "Float Sensor"}  ] },
+    {"KitchenRoomDoorPIR":[ {"name": "KitchenPIR_28"}, {"type": "Motion PIR Sensor"}  ] },
+    {"FridgeMagnetic":[ {"name": "Fridge_3"}, {"type": "Magnetic Sensor"}  ] },
+    {"GroceriesCupboardMagnetic":[ {"name": "GroceriesCupboard_5"}, {"type": "Magnetic Sensor"}  ] },
+    {"PlatesCupboardMagnetic":[ {"name": "PlatesCupboard_9"}, {"type": "Magnetic Sensor"}  ] },
+    {"CutleryDrawerMagnetic":[ {"name": "CutleryDrawer_14"}, {"type": "Magnetic Sensor"}  ] },
+    {"KitchenWindowMagnetic":[ {"name": "KitchenWindow_25"}, {"type": "Magnetic Sensor"}  ] },
+    {"StoveMagnetic":[ {"name": "StoveLid_15"}, {"type": "Magnetic Sensor"}  ] },
+    {"MicrowaveApplianceStatusSensor":[ {"name": "Microwave_27"}, {"type": "Appliance Status Sensor"}  ] },
+    {"ToasterApplianceStatusSensor":[ {"name": "Toaster_26"}, {"type": "Appliance Status Sensor"}  ] },
+    {"PianoSeatPressure":[ {"name": "PianoSeatPressure_20"}, {"type": "Pressure Sensor"}  ] },
+    {"BalconyDoorMagnetic":[ {"name": "BalconyDoor_24"}, {"type": "Magnetic Sensor"}  ] },
+    {"OfficeSeatPressure":[ {"name": "ServerNookSeatPressure_22"}, {"type": "Pressure Sensor"}  ] },
+    {"FrontDoorMagnetic":[ {"name": "Frontdoor_7"}, {"type": "Magnetic Sensor"}  ] }    
+],
+
+"houseC": 
+[
+    {"BedPressureRight":[ {"name": "BedPressureRight_5"}, {"type": "Pressure Sensor"} ] },
+    {"CouchSeatPressureSensor":[ {"name": "CouchSeatPressure_6"}, {"type": "Pressure Sensor"} ] },
+    {"FreezerApplianceStatusSensor":[ {"name": "Freezer_7"}, {"type": "Appliance Status Sensor"} ] },
+    {"Toilet_2_FlushSensor":[ {"name": "UpstairBathroomtToiletFlush_8"}, {"type": "Flush Sensor"} ] },
+    {"ToiletFlushSensor":[ {"name": "DownstairToiletFlush_10"}, {"type": "Flush Sensor"} ] },
+    {"Bathroom_2_Door_2_Magnetic":[ {"name": "UpstairBathroomtDoor2_11"}, {"type": "Magnetic Sensor"} ] },
+    {"CutleryDrawer_2_Magnetic":[ {"name": "CutleryDrawer2_13"}, {"type": "Magnetic Sensor"} ] },
+    {"KeysSensor":[ {"name": "KeysSensor_15"}, {"type": "Motion PIR Sensor"} ] },
+    {"Bathroom_2_DoorMagnetic":[ {"name": "UpstairBathroomtDoor1_16"}, {"type": "Magnetic Sensor"}  ] },
+    {"CutleryDrawerMagnetic":[ {"name": "CutleryDrawer1_18"}, {"type": "Magnetic Sensor"} ] },
+    {"PansCupboardMagnetic":[ {"name": "PansCupboard_20"}, {"type": "Magnetic Sensor"} ] },
+    {"MicrowaveApplianceStatusSensor":[ {"name": "Microwave_21"}, {"type": "Appliance Status Sensor"} ] },
+    {"LeftoverCupboardMagnetic":[ {"name": "LeftoverCupboard_22"}, {"type": "Magnetic Sensor"} ] },
+    {"PlatesCupboardMagnetic":[ {"name": "PlatesAndHerbsCupboard_23"}, {"type": "Magnetic Sensor"} ] },
+    {"BathroomDoorMagnetic":[ {"name": "DownstairToiletDoor_25"}, {"type": "Magnetic Sensor"} ] },
+    {"PlatesCupboard_2_Magnetic":[ {"name": "CupsBowlTunaCupboard_27"}, {"type": "Magnetic Sensor"} ] },
+    {"FrontDoorMagnetic":[ {"name": "Frontdoor_28"}, {"type": "Magnetic Sensor"} ] },
+    {"BedRoomDoorMagnetic":[ {"name": "BedroomDoor_29"}, {"type": "Magnetic Sensor"}  ]},
+    {"FridgeMagnetic":[ {"name": "Fridge_30"}, {"type": "Magnetic Sensor"}  ]},
+    {"ShowerBathroomPIR":[ {"name": "BathtubPIR_35"}, {"type": "Motion PIR Sensor"}  ]},
+    {"BedroomDresserPIR":[ {"name": "BedroomDresserPIR_36"}, {"type": "Motion PIR Sensor"}  ]},
+    {"BathroomSinkFloat":[ {"name": "UpstairBathroomSinkFloat_38"}, {"type": "Float Sensor"}  ]},
+    {"BedPressureLeft":[ {"name": "BedPressureLeft_39"}, {"type": "Pressure Sensor"}  ]}
+
+    
+]
+}

@@ -151,11 +151,10 @@ def main(args):
     else:
         args.device = torch.device("cpu")
 
-
-    houseB = pd.read_csv('/home/harsh/Downloads/Thesis/Research/data/houseB/houseB.csv')
-    nodes = pd.read_csv('/home/harsh/Downloads/Thesis/Graph/Our_Graphs/nodes.csv')
-    edges = pd.read_csv('/home/harsh/Downloads/Thesis/Graph/Our_Graphs/bidrectional_edges.csv')
-    lastChangeTimeInMinutes = pd.read_csv('/home/harsh/Downloads/Thesis/Graph/Our_Graphs/houseB-sensorChangeTime.csv')
+    houseB = pd.read_csv('../../../Our_Graphs/houseB/houseB.csv')
+    nodes = pd.read_csv('../../../Our_Graphs/nodes.csv')
+    edges = pd.read_csv('../../../Our_Graphs/bidrectional_edges.csv')
+    lastChangeTimeInMinutes = pd.read_csv('../../../houseB-sensorChangeTime.csv')
 
     u = edges['Src']
     v = edges['Dst']
