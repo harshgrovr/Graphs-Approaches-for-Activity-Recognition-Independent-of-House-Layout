@@ -168,7 +168,7 @@ def main(args):
 
     # Combine Feature like this: Place_in_House,Type, Value, Last_change_Time_in_Second for each node
     for i in range(len(house)):
-    # for i in range(700):
+    # for i in range(5000):
         feature = []
         flag = 0
         prev_node_value = 0
@@ -189,7 +189,6 @@ def main(args):
 
             if flag == 0 :
                 node_value = house.iloc[i, 4 + j - node_num]
-                print(node_value)
                 last_change_time_in_minutes = lastChangeTimeInMinutes.iloc[i, 4 + j - node_num]
                 node_place_in_house = nodes.loc[j, 'place_in_house']
                 node_type = nodes.loc[j, 'Type']
