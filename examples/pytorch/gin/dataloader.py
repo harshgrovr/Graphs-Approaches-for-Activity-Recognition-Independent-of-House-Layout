@@ -89,7 +89,11 @@ class GraphDataLoader():
         #Class Weighting
         labels_unique, counts = np.unique(labels, return_counts=True)
         print('Unique labels: {}'.format(labels_unique))
-        class_weights = [sum(counts)/c for c in counts]
+
+        class_weights = np.zeros(np.max(labels_unique) + 1, dtype=float)
+
+        for k,c in enumerate(counts):
+            class_weights[labels_unique[k]] = sum(counts) / c
         # Assign weight to each input sample
         example_weights = [class_weights[e] for e in labels]
         sampler = WeightedRandomSampler(example_weights, len(labels))
