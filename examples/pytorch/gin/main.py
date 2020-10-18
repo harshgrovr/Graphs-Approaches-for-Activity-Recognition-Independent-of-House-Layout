@@ -151,10 +151,12 @@ def main(args):
     else:
         args.device = torch.device("cpu")
 
-    houseB = pd.read_csv('../../../Our_Graphs/houseB/houseB.csv')
-    nodes = pd.read_csv('../../../Our_Graphs/nodes.csv')
-    edges = pd.read_csv('../../../Our_Graphs/bidrectional_edges.csv')
-    lastChangeTimeInMinutes = pd.read_csv('../../../houseB-sensorChangeTime.csv')
+    file_name = ['houseB'][0]
+
+    house = pd.read_csv('../../../data/' + file_name + '/' + file_name + '.csv')
+    nodes = pd.read_csv('../../../data/' + file_name + '/nodes.csv')
+    edges = pd.read_csv('../../../data/' + file_name + '/bidrectional_edges.csv')
+    lastChangeTimeInMinutes = pd.read_csv('../../../data/' + file_name + '/' + file_name + '-sensorChangeTime.csv')
 
     u = edges['Src']
     v = edges['Dst']
@@ -163,35 +165,53 @@ def main(args):
     graphs = []
     labels = []
 
+
     # Combine Feature like this: Place_in_House,Type, Value, Last_change_Time_in_Second for each node
-    for i in range(len(houseB)):
+    for i in range(len(house)):
     # for i in range(700):
-
         feature = []
-
+        flag = 0
+        prev_node_value = 0
+        prev_node_change_time = 0
         # Define Graph
         g = dgl.graph((u, v))
-
+        node_num = 0
         total_nodes = len(nodes)
         # Add Features
         for j in range(total_nodes - 1):
-            try:
-                node_value = houseB.iloc[i, 4 + j]
-                last_change_time_in_minutes = lastChangeTimeInMinutes.iloc[i, 4 + j]
-                node_place_in_house = nodes.loc[j, 'place_in_house']
-                node_type = nodes.loc[j, 'Type']
-                feature.append([node_value, node_place_in_house, node_type, last_change_time_in_minutes])
-            except:
+            if nodes.loc[j, 'Type'] == 1:
                 node_value = -1
                 node_place_in_house = nodes.loc[j, 'place_in_house']
                 node_type = nodes.loc[j, 'Type']
                 feature.append([node_value, node_place_in_house, node_type, -1])
+                node_num += 1
+                continue
 
-        feature.append([houseB.loc[i, 'time_of_the_day'], -1, -1, -1])
+            if flag == 0 :
+                node_value = house.iloc[i, 4 + j - node_num]
+                print(node_value)
+                last_change_time_in_minutes = lastChangeTimeInMinutes.iloc[i, 4 + j - node_num]
+                node_place_in_house = nodes.loc[j, 'place_in_house']
+                node_type = nodes.loc[j, 'Type']
+                feature.append([node_value, node_place_in_house, node_type, last_change_time_in_minutes])
+                if nodes.loc[j, 'Object'] == nodes.loc[j+1, 'Object']:
+                    prev_node_value = node_value
+                    prev_node_change_time = last_change_time_in_minutes
+                    flag = 1
+            else:
+                node_num += 1
+                node_place_in_house = nodes.loc[j, 'place_in_house']
+                node_type = nodes.loc[j, 'Type']
+                feature.append([prev_node_value, node_place_in_house, node_type, prev_node_change_time])
+                if nodes.loc[j, 'Object'] != nodes.loc[j+1, 'Object']:
+                    flag = 0
+
+
+        feature.append([house.loc[i, 'time_of_the_day'], -1, -1, -1])
         g.ndata['attr'] = torch.tensor(feature)
 
         # Give Label
-        labels.append(getIDFromClassName(houseB.iloc[i, 2], config))
+        labels.append(getIDFromClassName(house.iloc[i, 2], config))
 
         graphs.append(g)
 

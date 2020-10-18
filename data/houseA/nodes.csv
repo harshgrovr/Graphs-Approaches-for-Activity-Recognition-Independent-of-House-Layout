@@ -25,3 +25,4 @@ Id,Object,Value,place_in_house,Type
 23,GroceriesCupboard,-1,2,0
 24,Hall-BedroomDoor,-1,3,0
 25,Hall-BedroomDoor,-1,4,0
+26,time_of_the_day,-1,-1,-1
