@@ -172,6 +172,21 @@ class GraphHouseDataset():
         return len(self.graphs)
 
 
+def _split_rand(labels, split_ratio=0.7, seed=0, shuffle=True):
+    num_entries = len(labels)
+    indices = list(range(num_entries))
+    np.random.seed(seed)
+    np.random.shuffle(indices)
+    split = int(np.math.floor(split_ratio * num_entries))
+    train_idx, valid_idx = indices[:split], indices[split:]
+
+    print(
+        "train_set : test_set = %d : %d",
+        len(train_idx), len(valid_idx))
+
+    return train_idx, valid_idx
+
+
 def main(args):
 
     # set up seeds, args.seed supported
@@ -272,13 +287,28 @@ def main(args):
 
             graphs.append(g)
 
-        # dataset = GINDataset(args.dataset, not args.learn_eps)
-        dataset = GraphHouseDataset(graphs, labels)
+        train_idx, valid_idx = _split_rand(labels)
 
-        trainloader, validloader = GraphDataLoader(
-            dataset, batch_size=args.batch_size, device=args.device,
+        train_graphs = [graphs[i] for i in train_idx]
+        train_labels = [labels[i] for i in train_idx]
+
+        val_graphs = [graphs[i] for i in valid_idx]
+        val_labels = [labels[i] for i in valid_idx]
+
+        trainDataset = GraphHouseDataset(train_graphs, train_labels)
+        valDataset = GraphHouseDataset(val_graphs, val_labels)
+
+        trainloader = GraphDataLoader(
+            trainDataset, batch_size=args.batch_size, device=args.device,
             collate_fn=collate, seed=args.seed, shuffle=True,
             split_name='fold10', fold_idx=args.fold_idx).train_valid_loader()
+
+        validloader = GraphDataLoader(
+            valDataset, batch_size=args.batch_size, device=args.device,
+            collate_fn=collate, seed=args.seed, shuffle=True,
+            split_name='fold10', fold_idx=args.fold_idx).train_valid_loader()
+
+
         # or split_name='rand', split_ratio=0.7
 
         # if os.path.exists('./saved_model/saved_model'):

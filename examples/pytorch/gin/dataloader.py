@@ -54,19 +54,15 @@ class GraphDataLoader():
         else:
             raise NotImplementedError()
 
+        sampler = self.weightedRandomSampler(labels)
 
-        train_sampler = self.weightedRandomSampler(labels)
-        valid_sampler = self.weightedRandomSampler(labels)
+        self.loader = DataLoader(
+            dataset, sampler=sampler,
+            batch_size=batch_size, collate_fn=collate_fn, **self.kwargs)
 
-        self.train_loader = DataLoader(
-            dataset, sampler=train_sampler,
-            batch_size=batch_size, collate_fn=collate_fn, **self.kwargs)
-        self.valid_loader = DataLoader(
-            dataset, sampler=valid_sampler,
-            batch_size=batch_size, collate_fn=collate_fn, **self.kwargs)
 
     def train_valid_loader(self):
-        return self.train_loader, self.valid_loader
+        return self.loader
 
     def _split_fold10(self, labels, fold_idx=0, seed=0, shuffle=True):
         ''' 10 flod '''
