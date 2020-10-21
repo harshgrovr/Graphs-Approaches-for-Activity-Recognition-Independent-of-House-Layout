@@ -73,9 +73,9 @@ def train(args, net, trainloader, optimizer, criterion, epoch):
     running_loss = 0
     total_iters = len(trainloader)
     # setup the offset to avoid the overlap with mouse cursor
-    bar = tqdm(range(total_iters), unit='batch', position=2, file=sys.stdout)
+    # bar = tqdm(range(total_iters), unit='batch', position=2, file=sys.stdout)
 
-    for pos, (graphs, labels) in zip(bar, trainloader):
+    for (graphs, labels) in trainloader:
         # batch graphs will be shipped to device in forward part of model
         labels = labels.to(args.device)
         feat = graphs.ndata.pop('attr').to(args.device)
@@ -91,8 +91,8 @@ def train(args, net, trainloader, optimizer, criterion, epoch):
         optimizer.step()
 
         # report
-        bar.set_description('epoch-{}'.format(epoch))
-    bar.close()
+        # bar.set_description('epoch-{}'.format(epoch))
+    # bar.close()
     # the final batch will be aligned
     running_loss = running_loss / total_iters
 
@@ -235,8 +235,8 @@ def main(args):
 
 
         # Combine Feature like this: Place_in_House,Type, Value, Last_change_Time_in_Second for each node
-        for i in range(len(house)):
-        # for i in range(5000):
+        # for i in range(len(house)):
+        for i in range(5000):
             feature = []
             flag = 0
             prev_node_value = 0
@@ -320,30 +320,31 @@ def main(args):
 
         # it's not cost-effective to hanle the cursor and init 0
         # https://stackoverflow.com/a/23121189
-        tbar = tqdm(range(args.epochs), unit="epoch", position=3, ncols=0, file=sys.stdout)
-        vbar = tqdm(range(args.epochs), unit="epoch", position=4, ncols=0, file=sys.stdout)
-        lrbar = tqdm(range(args.epochs), unit="epoch", position=5, ncols=0, file=sys.stdout)
+        # tbar = tqdm(range(args.epochs), unit="epoch", position=3, ncols=0, file=sys.stdout)
+        # vbar = tqdm(range(args.epochs), unit="epoch", position=4, ncols=0, file=sys.stdout)
+        # lrbar = tqdm(range(args.epochs), unit="epoch", position=5, ncols=0, file=sys.stdout)
 
-        for epoch, _, _ in zip(tbar, vbar, lrbar):
-
+        for epoch in range(args.epochs):
             train(args, model, trainloader, optimizer, criterion, epoch)
             scheduler.step()
 
-            if epoch % 24 == 0:
+            if epoch % 10 == 0:
                 train_loss, train_acc, train_f1_score, train_per_class_accuracy = eval_net(
                     args, model, trainloader, criterion)
-                tbar.set_description(
-                    'train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
+
+                print('train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
                         .format(train_loss, 100. * train_acc, train_f1_score))
-                print('train per_class accuracy', train_per_class_accuracy)
+
+                # print('train per_class accuracy', train_per_class_accuracy)
 
                 valid_loss, valid_acc, val_f1_score, val_per_class_accuracy = eval_net(
                     args, model, validloader, criterion, text='test')
-                vbar.set_description(
-                    'valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
+
+                print('valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
                         .format(valid_loss, 100. * valid_acc, val_f1_score))
 
-                print('val per_class accuracy', val_per_class_accuracy)
+                # print('val per_class accuracy', val_per_class_accuracy)
+
                 checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
                 torch.save(checkpoint, './saved_model/saved_model')
 
@@ -364,13 +365,13 @@ def main(args):
                     ))
                     f.write("\n")
 
-            lrbar.set_description(
-                "Learning eps with learn_eps={}: {}".format(
-                    args.learn_eps, [layer.eps.data.item() for layer in model.ginlayers]))
-
-        tbar.close()
-        vbar.close()
-        lrbar.close()
+        #     lrbar.set_description(
+        #         "Learning eps with learn_eps={}: {}".format(
+        #             args.learn_eps, [layer.eps.data.item() for layer in model.ginlayers]))
+        #
+        # tbar.close()
+        # vbar.close()
+        # lrbar.close()
 
 
 if __name__ == '__main__':
