@@ -22,7 +22,7 @@ class Parser():
             choices=['MUTAG', 'COLLAB', 'IMDBBINARY', 'IMDBMULTI'],
             help='name of dataset (default: MUTAG)')
         self.parser.add_argument(
-            '--batch_size', type=int, default=32,
+            '--batch_size', type=int, default=128,
             help='batch size for training and validation (default: 32)')
         self.parser.add_argument(
             '--fold_idx', type=int, default=0,

@@ -171,7 +171,7 @@ class GIN(nn.Module):
             pooled_h = self.pool(g, h)
 
             score_over_layer += self.drop(self.linears_prediction[i](pooled_h))
-            if i ==  len(hidden_rep) - 1:
-                self.hiddenRepresentationOfGraph = torch.cat((self.hiddenRepresentationOfGraph, pooled_h), dim=0)
+            #if i ==  len(hidden_rep) - 1:
+               # self.hiddenRepresentationOfGraph = torch.cat((self.hiddenRepresentationOfGraph, pooled_h), dim=0)
 
         return score_over_layer
