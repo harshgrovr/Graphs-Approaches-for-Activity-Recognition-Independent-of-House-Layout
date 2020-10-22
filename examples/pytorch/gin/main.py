@@ -17,6 +17,9 @@ import dgl.nn.pytorch as dglnn
 import torch.nn.functional as F
 import dgl
 
+from dgl.data.utils import save_graphs, load_graphs
+
+
 config = {
     "batch_size": 32,
     "ActivityIdList":
@@ -172,7 +175,7 @@ class GraphHouseDataset():
         return len(self.graphs)
 
 
-def _split_rand(labels, split_ratio=0.7, seed=0, shuffle=True):
+def _split_rand(labels, split_ratio=0.8, seed=0, shuffle=True):
     num_entries = len(labels)
     indices = list(range(num_entries))
     np.random.seed(seed)
@@ -215,7 +218,13 @@ def main(args):
 
     file_names = ['houseA', 'houseB', 'houseC', 'ordonezA']
 
-    for file_name in file_names:
+    graph_path  = os.path.join('../../../data/all_houses/all_houses.bin')
+
+    graphs = []
+    labels = []
+
+    if not os.path.exists('graph_path'):
+     for file_name in file_names:
         print('\n\n\n\n')
         print('*******************************************************************')
         print('\t\t\t\t\t' + file_name + '\t\t\t\t\t\t\t')
@@ -230,13 +239,12 @@ def main(args):
         v = edges['Dst']
 
         # Create Graph per row of the House CSV
-        graphs = []
-        labels = []
+
 
 
         # Combine Feature like this: Place_in_House,Type, Value, Last_change_Time_in_Second for each node
-        # for i in range(len(house)):
-        for i in range(5000):
+        for i in range(len(house)):
+        # for i in range(5000):
             feature = []
             flag = 0
             prev_node_value = 0
@@ -287,91 +295,102 @@ def main(args):
 
             graphs.append(g)
 
-        train_idx, valid_idx = _split_rand(labels)
+        graph_labels = {"glabel": torch.tensor(labels)}
 
-        train_graphs = [graphs[i] for i in train_idx]
-        train_labels = [labels[i] for i in train_idx]
+        save_graphs(graph_path, graphs, graph_labels)
 
-        val_graphs = [graphs[i] for i in valid_idx]
-        val_labels = [labels[i] for i in valid_idx]
+    else:
+        graphs, labels = load_graphs(graph_path)
+        labels = list(labels['glabel'].numpy())
 
-        trainDataset = GraphHouseDataset(train_graphs, train_labels)
-        valDataset = GraphHouseDataset(val_graphs, val_labels)
+    train_idx, valid_idx = _split_rand(labels)
 
-        trainloader = GraphDataLoader(
-            trainDataset, batch_size=args.batch_size, device=args.device,
-            collate_fn=collate, seed=args.seed, shuffle=True,
-            split_name='fold10', fold_idx=args.fold_idx).train_valid_loader()
+    train_graphs = [graphs[i] for i in train_idx]
+    train_labels = [labels[i] for i in train_idx]
 
-        validloader = GraphDataLoader(
-            valDataset, batch_size=args.batch_size, device=args.device,
-            collate_fn=collate, seed=args.seed, shuffle=True,
-            split_name='fold10', fold_idx=args.fold_idx).train_valid_loader()
+    val_graphs = [graphs[i] for i in valid_idx]
+    val_labels = [labels[i] for i in valid_idx]
+
+    trainDataset = GraphHouseDataset(train_graphs, train_labels)
+    valDataset = GraphHouseDataset(val_graphs, val_labels)
+
+    trainloader = GraphDataLoader(
+        trainDataset, batch_size=args.batch_size, device=args.device,
+        collate_fn=collate, seed=args.seed, shuffle=True,
+        split_name='fold10', fold_idx=args.fold_idx).train_valid_loader()
+
+    validloader = GraphDataLoader(
+        valDataset, batch_size=args.batch_size, device=args.device,
+        collate_fn=collate, seed=args.seed, shuffle=True,
+        split_name='fold10', fold_idx=args.fold_idx).train_valid_loader()
 
 
-        # or split_name='rand', split_ratio=0.7
+    # or split_name='rand', split_ratio=0.7
 
-        # if os.path.exists('./saved_model/saved_model'):
-        #     state = torch.load('./saved_model/saved_model')
-        #     model.load_state_dict(state['state_dict'])
-        #     optimizer.load_state_dict(state['optimizer'])
+    if os.path.exists('./saved_model/saved_model'):
+        state = torch.load('./saved_model/saved_model')
+        model.load_state_dict(state['state_dict'])
+        optimizer.load_state_dict(state['optimizer'])
 
-        criterion = nn.CrossEntropyLoss()  # defaul reduce is true
+    criterion = nn.CrossEntropyLoss()  # defaul reduce is true
 
-        # it's not cost-effective to hanle the cursor and init 0
-        # https://stackoverflow.com/a/23121189
-        # tbar = tqdm(range(args.epochs), unit="epoch", position=3, ncols=0, file=sys.stdout)
-        # vbar = tqdm(range(args.epochs), unit="epoch", position=4, ncols=0, file=sys.stdout)
-        # lrbar = tqdm(range(args.epochs), unit="epoch", position=5, ncols=0, file=sys.stdout)
+    # it's not cost-effective to hanle the cursor and init 0
+    # https://stackoverflow.com/a/23121189
+    # tbar = tqdm(range(args.epochs), unit="epoch", position=3, ncols=0, file=sys.stdout)
+    # vbar = tqdm(range(args.epochs), unit="epoch", position=4, ncols=0, file=sys.stdout)
+    # lrbar = tqdm(range(args.epochs), unit="epoch", position=5, ncols=0, file=sys.stdout)
 
-        for epoch in range(args.epochs):
-            train(args, model, trainloader, optimizer, criterion, epoch)
-            scheduler.step()
+    for epoch in range(args.epochs):
+        break
+        train(args, model, trainloader, optimizer, criterion, epoch)
+        scheduler.step()
 
-            if epoch % 10 == 0:
-                train_loss, train_acc, train_f1_score, train_per_class_accuracy = eval_net(
-                    args, model, trainloader, criterion)
+        if epoch % 10 == 0:
+            print('epoch: ', epoch)
+            train_loss, train_acc, train_f1_score, train_per_class_accuracy = eval_net(
+                args, model, trainloader, criterion)
 
-                print('train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
-                        .format(train_loss, 100. * train_acc, train_f1_score))
+            print('train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
+                    .format(train_loss, 100. * train_acc, train_f1_score))
 
-                # print('train per_class accuracy', train_per_class_accuracy)
+            # print('train per_class accuracy', train_per_class_accuracy)
 
-                valid_loss, valid_acc, val_f1_score, val_per_class_accuracy = eval_net(
-                    args, model, validloader, criterion, text='test')
+            valid_loss, valid_acc, val_f1_score, val_per_class_accuracy = eval_net(
+                args, model, validloader, criterion, text='test')
 
-                print('valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
-                        .format(valid_loss, 100. * valid_acc, val_f1_score))
+            print('valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
+                    .format(valid_loss, 100. * valid_acc, val_f1_score))
 
-                # print('val per_class accuracy', val_per_class_accuracy)
+            # print('val per_class accuracy', val_per_class_accuracy)
 
-                checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
-                torch.save(checkpoint, './saved_model/saved_model')
 
-            if not args.filename == "":
-                with open(args.filename, 'a') as f:
-                    f.write('%s %s %s %s' % (
-                        args.dataset,
-                        args.learn_eps,
-                        args.neighbor_pooling_type,
-                        args.graph_pooling_type
-                    ))
-                    f.write("\n")
-                    f.write("%f %f %f %f" % (
-                        train_loss,
-                        train_acc,
-                        valid_loss,
-                        valid_acc
-                    ))
-                    f.write("\n")
+            checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
+            torch.save(checkpoint, './saved_model/saved_model')
 
-        #     lrbar.set_description(
-        #         "Learning eps with learn_eps={}: {}".format(
-        #             args.learn_eps, [layer.eps.data.item() for layer in model.ginlayers]))
-        #
-        # tbar.close()
-        # vbar.close()
-        # lrbar.close()
+        if not args.filename == "":
+            with open(args.filename, 'a') as f:
+                f.write('%s %s %s %s' % (
+                    args.dataset,
+                    args.learn_eps,
+                    args.neighbor_pooling_type,
+                    args.graph_pooling_type
+                ))
+                f.write("\n")
+                f.write("%f %f %f %f" % (
+                    train_loss,
+                    train_acc,
+                    valid_loss,
+                    valid_acc
+                ))
+                f.write("\n")
+
+    #     lrbar.set_description(
+    #         "Learning eps with learn_eps={}: {}".format(
+    #             args.learn_eps, [layer.eps.data.item() for layer in model.ginlayers]))
+    #
+    # tbar.close()
+    # vbar.close()
+    # lrbar.close()
 
 
 if __name__ == '__main__':
