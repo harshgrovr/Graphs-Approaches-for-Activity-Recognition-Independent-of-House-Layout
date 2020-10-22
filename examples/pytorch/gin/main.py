@@ -223,7 +223,7 @@ def main(args):
     graphs = []
     labels = []
 
-    if not os.path.exists('graph_path'):
+    if not os.path.exists(graph_path):
      for file_name in file_names:
         print('\n\n\n\n')
         print('*******************************************************************')

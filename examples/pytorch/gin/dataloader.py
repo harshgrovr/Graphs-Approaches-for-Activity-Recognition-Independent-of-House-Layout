@@ -45,14 +45,14 @@ class GraphDataLoader():
 
         labels = [l for _, l in dataset]
 
-        if split_name == 'fold10':
-            train_idx, valid_idx = self._split_fold10(
-                labels, fold_idx, seed, shuffle)
-        elif split_name == 'rand':
-            train_idx, valid_idx = self._split_rand(
-                labels, split_ratio, seed, shuffle)
-        else:
-            raise NotImplementedError()
+        # if split_name == 'fold10':
+        #     train_idx, valid_idx = self._split_fold10(
+        #         labels, fold_idx, seed, shuffle)
+        # elif split_name == 'rand':
+        #     train_idx, valid_idx = self._split_rand(
+        #         labels, split_ratio, seed, shuffle)
+        # else:
+        #     raise NotImplementedError()
 
         sampler = self.weightedRandomSampler(labels)
 
