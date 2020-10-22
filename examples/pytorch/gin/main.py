@@ -197,7 +197,7 @@ def main(args):
     np.random.seed(seed=args.seed)
 
     is_cuda = not args.disable_cuda and torch.cuda.is_available()
-    #is_cuda = False
+    is_cuda = False
 
     if is_cuda:
         args.device = torch.device("cuda:" + str(args.device))
@@ -341,7 +341,6 @@ def main(args):
     # lrbar = tqdm(range(args.epochs), unit="epoch", position=5, ncols=0, file=sys.stdout)
 
     for epoch in range(args.epochs):
-        break
         train(args, model, trainloader, optimizer, criterion, epoch)
         scheduler.step()
 
