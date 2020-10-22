@@ -9,6 +9,12 @@ __pycache__/
 # C extensions
 *.so
 
+
+# Larg Datasets
+
+data/all_houses/
+
+
 # Distribution / packaging
 .Python
 build/
