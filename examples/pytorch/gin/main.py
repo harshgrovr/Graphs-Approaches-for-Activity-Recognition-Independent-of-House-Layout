@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 
+from pytorchtools import EarlyStopping
 
 from dataloader import GraphDataLoader, collate
 from parser import Parser
@@ -192,6 +193,7 @@ def _split_rand(labels, split_ratio=0.8, seed=0, shuffle=True):
 
 def main(args):
 
+
     # set up seeds, args.seed supported
     torch.manual_seed(seed=args.seed)
     np.random.seed(seed=args.seed)
@@ -205,6 +207,8 @@ def main(args):
     else:
         args.device = torch.device("cpu")
 
+    # initialize the early_stopping object
+    early_stopping = EarlyStopping(patience=5, verbose=True)
 
     model = GIN(
         args.num_layers, args.num_mlp_layers,
@@ -214,7 +218,6 @@ def main(args):
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
-
 
     file_names = ['houseA', 'houseB', 'houseC', 'ordonezA']
 
@@ -243,8 +246,8 @@ def main(args):
 
 
         # Combine Feature like this: Place_in_House,Type, Value, Last_change_Time_in_Second for each node
-        for i in range(len(house)):
-        # for i in range(5000):
+        # for i in range(len(house)):
+        for i in range(5000):
             feature = []
             flag = 0
             prev_node_value = 0
@@ -303,7 +306,13 @@ def main(args):
         graphs, labels = load_graphs(graph_path)
         labels = list(labels['glabel'].numpy())
 
-    train_idx, valid_idx = _split_rand(labels)
+    total_ids = np.arange(len(labels), dtype=int)
+    valid_idx = []
+    valid_idx.extend(total_ids[7183: 8622])
+    valid_idx.extend(total_ids[37088 + 4756: 37088 + 6195])
+    valid_idx.extend(total_ids[37088 + 20583 + 17353:  37088 + 20583 + 18792])
+    valid_idx.extend(total_ids[37088 + 20583 + 26488 + 11375: 37088 + 20583 + 26488 + 12814])
+    train_idx = list(set(total_ids) - set(valid_idx))
 
     train_graphs = [graphs[i] for i in train_idx]
     train_labels = [labels[i] for i in train_idx]
@@ -327,10 +336,10 @@ def main(args):
 
     # or split_name='rand', split_ratio=0.7
 
-    if os.path.exists('./saved_model/saved_model'):
-        state = torch.load('./saved_model/saved_model')
-        model.load_state_dict(state['state_dict'])
-        optimizer.load_state_dict(state['optimizer'])
+    if os.path.exists('./checkpoint.pt'):
+        model = torch.load('./saved_model/saved_model')
+        # model.load_state_dict(state['state_dict'])
+        # optimizer.load_state_dict(state['optimizer'])
 
     criterion = nn.CrossEntropyLoss()  # defaul reduce is true
 
@@ -344,6 +353,9 @@ def main(args):
         train(args, model, trainloader, optimizer, criterion, epoch)
         scheduler.step()
 
+        # early_stopping needs the validation loss to check if it has decresed,
+        # and if it has, it will make a checkpoint of the current model
+
         if epoch % 10 == 0:
             print('epoch: ', epoch)
             train_loss, train_acc, train_f1_score, train_per_class_accuracy = eval_net(
@@ -352,7 +364,7 @@ def main(args):
             print('train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
                     .format(train_loss, 100. * train_acc, train_f1_score))
 
-            # print('train per_class accuracy', train_per_class_accuracy)
+            print('train per_class accuracy', train_per_class_accuracy)
 
             valid_loss, valid_acc, val_f1_score, val_per_class_accuracy = eval_net(
                 args, model, validloader, criterion, text='test')
@@ -360,11 +372,18 @@ def main(args):
             print('valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
                     .format(valid_loss, 100. * valid_acc, val_f1_score))
 
-            # print('val per_class accuracy', val_per_class_accuracy)
+            # early_stopping needs the validation loss to check if it has decresed,
+            # and if it has, it will make a checkpoint of the current model
+            early_stopping(valid_loss, model)
+
+            if early_stopping.early_stop:
+                print("Early stopping")
+                break
+            print('val per_class accuracy', val_per_class_accuracy)
 
 
-            checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
-            torch.save(checkpoint, './saved_model/saved_model')
+            # checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
+            # torch.save(checkpoint, './saved_model/saved_model')
 
         if not args.filename == "":
             with open(args.filename, 'a') as f:
