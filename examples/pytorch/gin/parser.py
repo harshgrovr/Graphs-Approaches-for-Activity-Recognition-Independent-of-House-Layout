@@ -68,7 +68,7 @@ class Parser():
             '--seed', type=int, default=0,
             help='random seed (default: 0)')
         self.parser.add_argument(
-            '--epochs', type=int, default=100,
+            '--epochs', type=int, default=200,
             help='number of epochs to train (default: 350)')
         self.parser.add_argument(
             '--lr', type=float, default=0.001,
@@ -76,6 +76,15 @@ class Parser():
         self.parser.add_argument(
             '--final_dropout', type=float, default=0.5,
             help='final layer dropout (default: 0.5)')
+        self.parser.add_argument(
+            '--save_embeddings', type=bool, default=False,
+            help='Save the graph final layer embeddings using Shuffle = False')
+        self.parser.add_argument(
+            '--nb_classes', type=int, default=16,
+            help='Num of output classes')
+        self.parser.add_argument(
+            '--input_features', type=int, default=4,
+            help='Input graph features')
 
         # done
         self.args = self.parser.parse_args()

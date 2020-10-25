@@ -35,6 +35,7 @@ class GraphDataLoader():
                  collate_fn=collate,
                  seed=0,
                  shuffle=True,
+                 save_embeddings=False,
                  split_name='fold10',
                  fold_idx=0,
                  split_ratio=0.7):
@@ -54,7 +55,10 @@ class GraphDataLoader():
         # else:
         #     raise NotImplementedError()
 
-        sampler = self.weightedRandomSampler(labels)
+        if save_embeddings:
+            sampler = None
+        else:
+            sampler = self.weightedRandomSampler(labels)
 
         self.loader = DataLoader(
             dataset, sampler=sampler,

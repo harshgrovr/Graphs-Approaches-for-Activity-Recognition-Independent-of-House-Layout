@@ -31,18 +31,15 @@ config = {
          {'name': 'eating', 'id': 4},
          {'name': 'takeShower', 'id': 5},
          {'name': 'leaveHouse', 'id': 6},
-         {'name': 'Idle', 'id': 7},
-         {'name': 'getDrink', 'id': 8},
-         {'name': 'prepareBreakfast', 'id': 9},
-         {'name': 'getSnack', 'id': 10},
-         {'name': 'idle', 'id': 11},
-         {'name': 'storeGroceries', 'id': 12},
-         {'name': 'washClothes', 'id': 13},
-         {'name': 'grooming', 'id': 14},
-         {'name': 'prepareDinner', 'id': 15},
-         {'name': ' grooming', 'id': 16},
-         {'name': 'relaxing', 'id': 17},
-         {'name': 'useToilet', 'id': 18}],
+         {'name': 'getDrink', 'id': 7},
+         {'name': 'prepareBreakfast', 'id': 8},
+         {'name': 'getSnack', 'id': 9},
+         {'name': 'idle', 'id': 10},
+         {'name': 'grooming', 'id': 11},
+         {'name': 'prepareDinner', 'id': 12},
+         {'name': ' grooming', 'id': 13},
+         {'name': 'relaxing', 'id': 14},
+         {'name': 'useToilet', 'id': 15}],
 
     "merging_activties" : {
         "loadDishwasher": "washDishes",
@@ -112,8 +109,9 @@ def eval_net(args, net, dataloader, criterion, text = 'train'):
     f1 = 0
     all_labels = []
     all_predicted = []
-    nb_classes = 19
+    nb_classes = args.nb_classes
     confusion_matrix = torch.zeros(nb_classes, nb_classes)
+    hiddenLayerEmbeddings = None
 
     for data in dataloader:
         graphs, labels = data
@@ -121,7 +119,7 @@ def eval_net(args, net, dataloader, criterion, text = 'train'):
         graphs = graphs.to(args.device)
         labels = labels.to(args.device)
         total += len(labels)
-        outputs = net(graphs, feat)
+        outputs, hiddenLayerEmbeddings = net(graphs, feat)
         _, predicted = torch.max(outputs.data, 1)
 
         total_correct += (predicted == labels.data).sum().item()
@@ -134,6 +132,13 @@ def eval_net(args, net, dataloader, criterion, text = 'train'):
 
         for t, p in zip(labels.view(-1), predicted.view(-1)):
             confusion_matrix[t.long(), p.long()] += 1
+
+    if args.save_embeddings:
+        hiddenLayerEmbeddings = hiddenLayerEmbeddings.detach().cpu().numpy()
+        hiddenLayerEmbeddings = hiddenLayerEmbeddings[1:]
+        df = pd.DataFrame(hiddenLayerEmbeddings)
+        df['activity'] = np.array(all_labels)
+        df.to_csv("../../../data/all_houses/graph_embeddings_" + text + ".csv", index=False)
 
     np.save('./' + text + '_confusion_matrix.npy', confusion_matrix)
 
@@ -191,7 +196,7 @@ def _split_rand(labels, split_ratio=0.8, seed=0, shuffle=True):
     return train_idx, valid_idx
 
 
-def main(args):
+def main(args, shuffle=True):
 
 
     # set up seeds, args.seed supported
@@ -208,20 +213,20 @@ def main(args):
         args.device = torch.device("cpu")
 
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(patience=5, verbose=True)
+    early_stopping = EarlyStopping(patience=10, verbose=True)
 
     model = GIN(
         args.num_layers, args.num_mlp_layers,
-        4, args.hidden_dim, 19,
+        args.input_features, args.hidden_dim, args.nb_classes,
         args.final_dropout, args.learn_eps,
-        args.graph_pooling_type, args.neighbor_pooling_type).to(args.device)
+        args.graph_pooling_type, args.neighbor_pooling_type, args.save_embeddings).to(args.device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
 
     file_names = ['houseA', 'houseB', 'houseC', 'ordonezA']
 
-    graph_path  = os.path.join('../../../data/all_houses/all_houses.bin')
+    graph_path = os.path.join('../../../data/all_houses/all_houses.bin')
 
     graphs = []
     labels = []
@@ -243,11 +248,9 @@ def main(args):
 
         # Create Graph per row of the House CSV
 
-
-
         # Combine Feature like this: Place_in_House,Type, Value, Last_change_Time_in_Second for each node
-        # for i in range(len(house)):
-        for i in range(5000):
+        for i in range(len(house)):
+        # for i in range(5000):
             feature = []
             flag = 0
             prev_node_value = 0
@@ -284,7 +287,6 @@ def main(args):
                     if nodes.loc[j, 'Object'] != nodes.loc[j+1, 'Object']:
                         flag = 0
 
-
             feature.append([house.loc[i, 'time_of_the_day'], -1, -1, -1])
             g.ndata['attr'] = torch.tensor(feature)
 
@@ -308,10 +310,10 @@ def main(args):
 
     total_ids = np.arange(len(labels), dtype=int)
     valid_idx = []
-    valid_idx.extend(total_ids[7183: 8622])
-    valid_idx.extend(total_ids[37088 + 4756: 37088 + 6195])
-    valid_idx.extend(total_ids[37088 + 20583 + 17353:  37088 + 20583 + 18792])
-    valid_idx.extend(total_ids[37088 + 20583 + 26488 + 11375: 37088 + 20583 + 26488 + 12814])
+    valid_idx.extend(total_ids[7183 : 8622])
+    valid_idx.extend(total_ids[37088 + 4756 : 37088 + 6195])
+    valid_idx.extend(total_ids[37088 + 20583 + 17353 :  37088 + 20583 + 18792])
+    valid_idx.extend(total_ids[37088 + 20583 + 26488 + 11375 : 37088 + 20583 + 26488 + 12814])
     train_idx = list(set(total_ids) - set(valid_idx))
 
     train_graphs = [graphs[i] for i in train_idx]
@@ -325,19 +327,20 @@ def main(args):
 
     trainloader = GraphDataLoader(
         trainDataset, batch_size=args.batch_size, device=args.device,
-        collate_fn=collate, seed=args.seed, shuffle=True,
-        split_name='fold10', fold_idx=args.fold_idx).train_valid_loader()
+        collate_fn=collate, seed=args.seed, shuffle=shuffle,
+        split_name='fold10', fold_idx=args.fold_idx, save_embeddings= args.save_embeddings).train_valid_loader()
 
     validloader = GraphDataLoader(
         valDataset, batch_size=args.batch_size, device=args.device,
-        collate_fn=collate, seed=args.seed, shuffle=True,
-        split_name='fold10', fold_idx=args.fold_idx).train_valid_loader()
+        collate_fn=collate, seed=args.seed, shuffle=shuffle,
+        split_name='fold10', fold_idx=args.fold_idx, save_embeddings= args.save_embeddings).train_valid_loader()
 
 
     # or split_name='rand', split_ratio=0.7
 
     if os.path.exists('./checkpoint.pt'):
-        model = torch.load('./saved_model/saved_model')
+        state = torch.load('./checkpoint.pt')
+        model.load_state_dict(state)
         # model.load_state_dict(state['state_dict'])
         # optimizer.load_state_dict(state['optimizer'])
 
@@ -350,8 +353,9 @@ def main(args):
     # lrbar = tqdm(range(args.epochs), unit="epoch", position=5, ncols=0, file=sys.stdout)
 
     for epoch in range(args.epochs):
-        train(args, model, trainloader, optimizer, criterion, epoch)
-        scheduler.step()
+        if not args.save_embeddings:
+            train(args, model, trainloader, optimizer, criterion, epoch)
+            scheduler.step()
 
         # early_stopping needs the validation loss to check if it has decresed,
         # and if it has, it will make a checkpoint of the current model
@@ -364,7 +368,9 @@ def main(args):
             print('train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
                     .format(train_loss, 100. * train_acc, train_f1_score))
 
-            print('train per_class accuracy', train_per_class_accuracy)
+
+            # print('train per_class accuracy', train_per_class_accuracy)
+
 
             valid_loss, valid_acc, val_f1_score, val_per_class_accuracy = eval_net(
                 args, model, validloader, criterion, text='test')
@@ -372,14 +378,19 @@ def main(args):
             print('valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
                     .format(valid_loss, 100. * valid_acc, val_f1_score))
 
+            # print('val per_class accuracy', val_per_class_accuracy)
+
+
+            if args.save_embeddings:
+                break
             # early_stopping needs the validation loss to check if it has decresed,
             # and if it has, it will make a checkpoint of the current model
-            early_stopping(valid_loss, model)
+            early_stopping(val_f1_score, model)
 
             if early_stopping.early_stop:
                 print("Early stopping")
                 break
-            print('val per_class accuracy', val_per_class_accuracy)
+
 
 
             # checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
@@ -416,4 +427,9 @@ if __name__ == '__main__':
     print('show all arguments configuration...')
     print(args)
 
-    main(args)
+    # Save Embeddings
+    if args.save_embeddings:
+        print('\n \n !!!!!!!       Saving the embeddings    !!!!!!!!!! \n\n')
+        main(args, shuffle=False)
+    else:
+        main(args)
