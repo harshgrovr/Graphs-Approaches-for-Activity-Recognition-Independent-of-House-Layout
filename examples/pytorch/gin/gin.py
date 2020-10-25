@@ -84,7 +84,7 @@ class GIN(nn.Module):
     """GIN model"""
     def __init__(self, num_layers, num_mlp_layers, input_dim, hidden_dim,
                  output_dim, final_dropout, learn_eps, graph_pooling_type,
-                 neighbor_pooling_type):
+                 neighbor_pooling_type, save_embeddings):
         """model parameters setting
 
         Paramters
@@ -113,7 +113,9 @@ class GIN(nn.Module):
         super(GIN, self).__init__()
         self.num_layers = num_layers
         self.learn_eps = learn_eps
-        self.hiddenRepresentationOfGraph = torch.empty((32,64))
+        self.save_embeddings = save_embeddings
+        self.hiddenRepresentationOfGraph = torch.empty((1, 64))
+
 
         # List of MLPs
         self.ginlayers = torch.nn.ModuleList()
@@ -172,4 +174,10 @@ class GIN(nn.Module):
 
             score_over_layer += self.drop(self.linears_prediction[i](pooled_h))
 
-        return score_over_layer
+            if self.save_embeddings:
+                if i == len(hidden_rep) - 1:
+                    self.hiddenRepresentationOfGraph = torch.cat((self.hiddenRepresentationOfGraph, pooled_h), dim=0)
+            else:
+                self.hiddenRepresentationOfGraph = None
+
+        return score_over_layer, self.hiddenRepresentationOfGraph
