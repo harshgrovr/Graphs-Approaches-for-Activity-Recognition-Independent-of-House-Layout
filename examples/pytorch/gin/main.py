@@ -50,15 +50,16 @@ config = {
         "eatDinner": "eating",
         "eatBreakfast": "eating",
         "getDressed": " grooming",
+        "Idle": "idle",
         "shave": "grooming",
-        "takeMedication": "Idle",
+        "takeMedication": "idle",
         "leave_Home": "leaveHouse",
         "Sleeping": "goToBed",
         "Bed_to_Toilet": "useToilet",
-        "Enter_Home": "Idle",
+        "Enter_Home": "idle",
         "Respirate": "relaxing",
-        "Work": "Idle",
-        "Housekeeping": "Idle",
+        "Work": "idle",
+        "Housekeeping": "idle",
         "watchTV": "relaxing"
     }
 }
@@ -81,7 +82,7 @@ def train(args, net, trainloader, optimizer, criterion, epoch):
         labels = labels.to(args.device)
         feat = graphs.ndata.pop('attr').to(args.device)
         graphs = graphs.to(args.device)
-        outputs = net(graphs, feat)
+        outputs, _ = net(graphs, feat)
 
         loss = criterion(outputs, labels)
         running_loss += loss.item()
@@ -307,6 +308,7 @@ def main(args, shuffle=True):
     else:
         graphs, labels = load_graphs(graph_path)
         labels = list(labels['glabel'].numpy())
+    print(np.unique(labels))
 
     total_ids = np.arange(len(labels), dtype=int)
     valid_idx = []
@@ -360,7 +362,7 @@ def main(args, shuffle=True):
         # early_stopping needs the validation loss to check if it has decresed,
         # and if it has, it will make a checkpoint of the current model
 
-        if epoch % 10 == 0:
+        if epoch % 5 == 0:
             print('epoch: ', epoch)
             train_loss, train_acc, train_f1_score, train_per_class_accuracy = eval_net(
                 args, model, trainloader, criterion)
@@ -373,7 +375,7 @@ def main(args, shuffle=True):
 
 
             valid_loss, valid_acc, val_f1_score, val_per_class_accuracy = eval_net(
-                args, model, validloader, criterion, text='test')
+                args, model, validloader, criterion, text='val')
 
             print('valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
                     .format(valid_loss, 100. * valid_acc, val_f1_score))
