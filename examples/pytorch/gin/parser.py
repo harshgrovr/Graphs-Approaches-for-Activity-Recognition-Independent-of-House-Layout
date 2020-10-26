@@ -22,7 +22,7 @@ class Parser():
             choices=['MUTAG', 'COLLAB', 'IMDBBINARY', 'IMDBMULTI'],
             help='name of dataset (default: MUTAG)')
         self.parser.add_argument(
-            '--batch_size', type=int, default=128,
+            '--batch_size', type=int, default=64,
             help='batch size for training and validation (default: 32)')
         self.parser.add_argument(
             '--fold_idx', type=int, default=0,
@@ -77,7 +77,7 @@ class Parser():
             '--final_dropout', type=float, default=0.5,
             help='final layer dropout (default: 0.5)')
         self.parser.add_argument(
-            '--save_embeddings', type=bool, default=False,
+            '--save_embeddings', type=bool, default=True,
             help='Save the graph final layer embeddings using Shuffle = False')
         self.parser.add_argument(
             '--nb_classes', type=int, default=16,
