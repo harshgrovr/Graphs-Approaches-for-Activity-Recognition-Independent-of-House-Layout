@@ -242,14 +242,14 @@ def main(args, shuffle=True):
         house = pd.read_csv('../../../data/' + file_name + '/' + file_name + '.csv')
         nodes = pd.read_csv('../../../data/' + file_name + '/nodes.csv')
         edges = pd.read_csv('../../../data/' + file_name + '/bidrectional_edges.csv')
-        lastChangeTimeInMinutes = pd.read_csv('../../../data/' + file_name + '/' + 'houseB' + '-sensorChangeTime.csv')
+        lastChangeTimeInMinutes = pd.read_csv('../../../data/' + file_name + '/' + 'house' + '-sensorChangeTime.csv')
 
         u = edges['Src']
         v = edges['Dst']
 
         # Create Graph per row of the House CSV
 
-        # Combine Feature like this: Place_in_House,Type, Value, Last_change_Time_in_Second for each node
+        # Combine Feature like this: Value, Place_in_House, Type, Last_change_Time_in_Second for each node
         for i in range(len(house)):
         # for i in range(5000):
             feature = []
@@ -270,7 +270,7 @@ def main(args, shuffle=True):
                     node_num += 1
                     continue
 
-                if flag == 0 :
+                if flag == 0:
                     node_value = house.iloc[i, 4 + j - node_num]
                     last_change_time_in_minutes = lastChangeTimeInMinutes.iloc[i, 4 + j - node_num]
                     node_place_in_house = nodes.loc[j, 'place_in_house']
@@ -359,7 +359,7 @@ def main(args, shuffle=True):
             train(args, model, trainloader, optimizer, criterion, epoch)
             scheduler.step()
 
-        # early_stopping needs the validation loss to check if it has decresed,
+        # early_stopping needs the F1 score to check if it has increased,
         # and if it has, it will make a checkpoint of the current model
 
         if epoch % 5 == 0:
