@@ -24,7 +24,7 @@ from dgl.data.utils import save_graphs, load_graphs
 config = {
     "batch_size": 32,
     "ActivityIdList":
-        [{'name': 'washDishes', 'id': 0},
+         [{'name': 'washDishes', 'id': 0},
          {'name': 'goToBed', 'id': 1},
          {'name': 'brushTeeth', 'id': 2},
          {'name': 'prepareLunch', 'id': 3},
@@ -37,11 +37,9 @@ config = {
          {'name': 'idle', 'id': 10},
          {'name': 'grooming', 'id': 11},
          {'name': 'prepareDinner', 'id': 12},
-         {'name': ' grooming', 'id': 13},
-         {'name': 'relaxing', 'id': 14},
-         {'name': 'useToilet', 'id': 15}],
-
-    "merging_activties" : {
+         {'name': 'relaxing', 'id': 13},
+         {'name': 'useToilet', 'id': 14}],
+"merging_activties" : {
         "loadDishwasher": "washDishes",
         "unloadDishwasher": "washDishes",
         "loadWashingmachine": "washClothes",
@@ -49,8 +47,7 @@ config = {
         "receiveGuest": "relaxing",
         "eatDinner": "eating",
         "eatBreakfast": "eating",
-        "getDressed": " grooming",
-        "Idle": "idle",
+        "getDressed": "grooming",
         "shave": "grooming",
         "takeMedication": "idle",
         "leave_Home": "leaveHouse",
@@ -60,8 +57,9 @@ config = {
         "Respirate": "relaxing",
         "Work": "idle",
         "Housekeeping": "idle",
+        "Idle": "idle",
         "watchTV": "relaxing"
-    }
+    },
 }
 def getClassnameFromID(train_label):
 
@@ -225,7 +223,7 @@ def main(args, shuffle=True):
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
 
-    file_names = ['houseA', 'houseB', 'houseC', 'ordonezA']
+    file_names = ['ordonezB', 'houseB', 'houseC', 'houseA', 'ordonezA']
 
     graph_path = os.path.join('../../../data/all_houses/all_houses.bin')
 
@@ -239,7 +237,7 @@ def main(args, shuffle=True):
         print('\t\t\t\t\t' + file_name + '\t\t\t\t\t\t\t')
         print('*******************************************************************')
         print('\n\n\n\n')
-        house = pd.read_csv('../../../data/' + file_name + '/' + file_name + '.csv')
+        house = pd.read_csv('../../../data/' + file_name + '/ob_' + file_name + '.csv')
         nodes = pd.read_csv('../../../data/' + file_name + '/nodes.csv')
         edges = pd.read_csv('../../../data/' + file_name + '/bidrectional_edges.csv')
         lastChangeTimeInMinutes = pd.read_csv('../../../data/' + file_name + '/' + 'house' + '-sensorChangeTime.csv')
@@ -312,10 +310,14 @@ def main(args, shuffle=True):
 
     total_ids = np.arange(len(labels), dtype=int)
     valid_idx = []
-    valid_idx.extend(total_ids[7183 : 8622])
-    valid_idx.extend(total_ids[37088 + 4756 : 37088 + 6195])
-    valid_idx.extend(total_ids[37088 + 20583 + 17353 :  37088 + 20583 + 18792])
-    valid_idx.extend(total_ids[37088 + 20583 + 26488 + 11375 : 37088 + 20583 + 26488 + 12814])
+    for key, val in args.house_start_end_dict.items():
+        start, end = val
+        valid_idx.extend(np.arange(start, end))
+
+    ### Save all the embeddings
+    if args.save_embeddings:
+        valid_idx =[]
+
     train_idx = list(set(total_ids) - set(valid_idx))
 
     train_graphs = [graphs[i] for i in train_idx]
@@ -348,12 +350,6 @@ def main(args, shuffle=True):
 
     criterion = nn.CrossEntropyLoss()  # defaul reduce is true
 
-    # it's not cost-effective to hanle the cursor and init 0
-    # https://stackoverflow.com/a/23121189
-    # tbar = tqdm(range(args.epochs), unit="epoch", position=3, ncols=0, file=sys.stdout)
-    # vbar = tqdm(range(args.epochs), unit="epoch", position=4, ncols=0, file=sys.stdout)
-    # lrbar = tqdm(range(args.epochs), unit="epoch", position=5, ncols=0, file=sys.stdout)
-
     for epoch in range(args.epochs):
         if not args.save_embeddings:
             train(args, model, trainloader, optimizer, criterion, epoch)
@@ -362,7 +358,7 @@ def main(args, shuffle=True):
         # early_stopping needs the F1 score to check if it has increased,
         # and if it has, it will make a checkpoint of the current model
 
-        if epoch % 5 == 0:
+        if epoch % 10 == 9:
             print('epoch: ', epoch)
             train_loss, train_acc, train_f1_score, train_per_class_accuracy = eval_net(
                 args, model, trainloader, criterion)
@@ -373,6 +369,8 @@ def main(args, shuffle=True):
 
             # print('train per_class accuracy', train_per_class_accuracy)
 
+            if args.save_embeddings:
+                break
 
             valid_loss, valid_acc, val_f1_score, val_per_class_accuracy = eval_net(
                 args, model, validloader, criterion, text='val')
@@ -383,8 +381,7 @@ def main(args, shuffle=True):
             # print('val per_class accuracy', val_per_class_accuracy)
 
 
-            if args.save_embeddings:
-                break
+
             # early_stopping needs the validation loss to check if it has decresed,
             # and if it has, it will make a checkpoint of the current model
             early_stopping(val_f1_score, model)
@@ -414,14 +411,6 @@ def main(args, shuffle=True):
                     valid_acc
                 ))
                 f.write("\n")
-
-    #     lrbar.set_description(
-    #         "Learning eps with learn_eps={}: {}".format(
-    #             args.learn_eps, [layer.eps.data.item() for layer in model.ginlayers]))
-    #
-    # tbar.close()
-    # vbar.close()
-    # lrbar.close()
 
 
 if __name__ == '__main__':
