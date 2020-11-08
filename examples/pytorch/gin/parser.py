@@ -20,7 +20,7 @@ class Parser():
         self.parser.add_argument(
             '--dataset', type=str, default="MUTAG",
             choices=['MUTAG', 'COLLAB', 'IMDBBINARY', 'IMDBMULTI'],
-            help='name of dataset (default: MUTAG)')
+            help='name of dataset (default: Graph obtained from OB Representation of each house)')
         self.parser.add_argument(
             '--batch_size', type=int, default=64,
             help='batch size for training and validation (default: 32)')
@@ -71,19 +71,23 @@ class Parser():
             '--epochs', type=int, default=200,
             help='number of epochs to train (default: 350)')
         self.parser.add_argument(
-            '--lr', type=float, default=0.001,
+            '--lr', type=float, default=0.0001,
             help='learning rate (default: 0.01)')
         self.parser.add_argument(
             '--final_dropout', type=float, default=0.5,
             help='final layer dropout (default: 0.5)')
         self.parser.add_argument(
-            '--save_embeddings', type=bool, default=True,
+            '--save_embeddings', type=bool, default=False,
             help='Save the graph final layer embeddings using Shuffle = False')
         self.parser.add_argument(
-            '--nb_classes', type=int, default=16,
+            '--nb_classes', type=int, default=15,
             help='Num of output classes')
         self.parser.add_argument(
             '--input_features', type=int, default=4,
+            help='Input graph features')
+        self.parser.add_argument(
+            '--house_start_end_dict', type=dict, default=  {'ordonezB': (767, 892), 'houseB': (4015, 4033), 'houseC': (4610, 4619),
+                                 'houseA': (7228, 7241), 'ordonezA': (8403, 8427)},
             help='Input graph features')
 
         # done

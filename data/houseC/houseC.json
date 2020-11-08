@@ -97,7 +97,7 @@
       "location": [103]
     },
     {
-      "name": "CouchSeatPressure ",
+      "name": "CouchSeatPressure",
       "id": 6,
       "type": "PressureSensor",
       "objectType": "Couch",
