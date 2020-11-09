@@ -306,7 +306,8 @@ def main(args, shuffle=True):
     else:
         graphs, labels = load_graphs(graph_path)
         labels = list(labels['glabel'].numpy())
-    print(np.unique(labels))
+    # print(np.unique(labels))
+    print(len(graphs))
 
     total_ids = np.arange(len(labels), dtype=int)
     valid_idx = []
@@ -354,6 +355,8 @@ def main(args, shuffle=True):
         if not args.save_embeddings:
             train(args, model, trainloader, optimizer, criterion, epoch)
             scheduler.step()
+        else:
+            model.eval()
 
         # early_stopping needs the F1 score to check if it has increased,
         # and if it has, it will make a checkpoint of the current model

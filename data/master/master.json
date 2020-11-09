@@ -17,6 +17,7 @@
     
     "houseB": 
     [
+        {"ToiletDoorMagnetic":[ {"name": "ToiletDoor_1"}, {"type": "Toilet Door Magnetic"}  ] },        
         {"BedroomMovementPIR":[ {"name": "BedroomMovement_16"}, {"type": "Motion PIR Sensor"}  ] },
         {"BedPressureRight":[ {"name": "BedPressureRight_12"}, {"type": "Pressure Sensor"}  ] },
         {"BedPressureLeft":[ {"name": "BedPressureLeft_13"}, {"type": "Pressure Sensor"}  ] },
