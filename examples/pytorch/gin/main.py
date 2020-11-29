@@ -212,7 +212,7 @@ def main(args, shuffle=True):
         args.device = torch.device("cpu")
 
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(patience=10, verbose=True)
+    early_stopping = EarlyStopping(patience=15, verbose=True)
 
     model = GIN(
         args.num_layers, args.num_mlp_layers,
@@ -240,7 +240,7 @@ def main(args, shuffle=True):
         house = pd.read_csv('../../../data/' + file_name + '/ob_' + file_name + '.csv')
         nodes = pd.read_csv('../../../data/' + file_name + '/nodes.csv')
         edges = pd.read_csv('../../../data/' + file_name + '/bidrectional_edges.csv')
-        lastChangeTimeInMinutes = pd.read_csv('../../../data/' + file_name + '/' + 'house' + '-sensorChangeTime.csv')
+        lastChangeTimeInMinutes = pd.read_csv('../../../data/' + file_name + '/' + 'ob-house' + '-sensorChangeTime.csv')
 
         u = edges['Src']
         v = edges['Dst']
@@ -315,11 +315,18 @@ def main(args, shuffle=True):
         start, end = val
         valid_idx.extend(np.arange(start, end))
 
+    # ordonezB Length
+    test_idx = np.arange(0, 2488)
+    # test_idx = np.arange(0, 30470)
+
     ### Save all the embeddings
     if args.save_embeddings:
-        valid_idx =[]
+        valid_idx = []
+        test_idx = []
 
-    train_idx = list(set(total_ids) - set(valid_idx))
+
+
+    train_idx = list(set(total_ids) - set(valid_idx) - set(test_idx))
 
     train_graphs = [graphs[i] for i in train_idx]
     train_labels = [labels[i] for i in train_idx]
@@ -327,8 +334,13 @@ def main(args, shuffle=True):
     val_graphs = [graphs[i] for i in valid_idx]
     val_labels = [labels[i] for i in valid_idx]
 
+    test_graphs = [graphs[i] for i in test_idx]
+    test_labels = [labels[i] for i in test_idx]
+
+
     trainDataset = GraphHouseDataset(train_graphs, train_labels)
     valDataset = GraphHouseDataset(val_graphs, val_labels)
+    testDataset = GraphHouseDataset(test_graphs, test_labels)
 
     trainloader = GraphDataLoader(
         trainDataset, batch_size=args.batch_size, device=args.device,
@@ -340,16 +352,22 @@ def main(args, shuffle=True):
         collate_fn=collate, seed=args.seed, shuffle=shuffle,
         split_name='fold10', fold_idx=args.fold_idx, save_embeddings= args.save_embeddings).train_valid_loader()
 
+    testloader = GraphDataLoader(
+        testDataset, batch_size=args.batch_size, device=args.device,
+        collate_fn=collate, seed=args.seed, shuffle=shuffle,
+        split_name='fold10', fold_idx=args.fold_idx, save_embeddings=args.save_embeddings).train_valid_loader()
+
 
     # or split_name='rand', split_ratio=0.7
 
     if os.path.exists('./checkpoint.pt'):
+        print('loading saved checkpoint ')
         state = torch.load('./checkpoint.pt')
         model.load_state_dict(state)
         # model.load_state_dict(state['state_dict'])
         # optimizer.load_state_dict(state['optimizer'])
 
-    criterion = nn.CrossEntropyLoss()  # defaul reduce is true
+    criterion = nn.CrossEntropyLoss()  # default reduce is true
 
     for epoch in range(args.epochs):
         if not args.save_embeddings:
@@ -369,11 +387,17 @@ def main(args, shuffle=True):
             print('train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
                     .format(train_loss, 100. * train_acc, train_f1_score))
 
-
-            # print('train per_class accuracy', train_per_class_accuracy)
-
             if args.save_embeddings:
                 break
+
+            test_loss, test_acc, test_f1_score, test_per_class_accuracy = eval_net(
+                args, model, testloader, criterion)
+
+            print('test set - average loss: {:.4f}, accuracy: {:.0f}%  test_f1_score: {:.4f} '
+                  .format(test_loss, 100. * test_acc, test_f1_score))
+
+            # print('train per_class accuracy', test_per_class_accuracy)
+
 
             valid_loss, valid_acc, val_f1_score, val_per_class_accuracy = eval_net(
                 args, model, validloader, criterion, text='val')
@@ -392,7 +416,6 @@ def main(args, shuffle=True):
             if early_stopping.early_stop:
                 print("Early stopping")
                 break
-
 
 
             # checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
