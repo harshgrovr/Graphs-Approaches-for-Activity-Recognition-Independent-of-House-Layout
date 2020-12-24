@@ -1,3 +1,16 @@
+'''
+
+This code is responsible for training graph model with input data as single house, with leave day out for testing approach.
+
+This runs for all configuration[Raw, OB_Compressed, OB_decompressed].
+
+And, it runs for all the 5 houses.
+
+It creates the graph of the house if that does not exist from csv and nodes, and edge data present. Else, it uses graph data
+already present.
+
+'''
+import random
 import sys
 import numpy as np
 from sklearn.metrics import f1_score
@@ -196,10 +209,14 @@ def getUniqueStartIndex(df):
 
 def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
     file_names = ['ordonezB', 'houseB', 'houseC', 'houseA', 'ordonezA']
-    run_time_configs = ['raw_data', 'ob_data_compressed' ]
+
+    # run_time_configs = ['ob_data_compressed', 'raw_data', 'ob_data_Decompressed']
+    run_time_configs = ['raw_data']
     for run_configuration in run_time_configs:
+        results_list = []
         print('\n\n\n\n Running configuration', run_configuration, '\n\n\n\n')
         for file_name in file_names:
+            print('house is: ', file_name)
             if run_configuration is 'raw_data':
                 config['ob_data_compressed'] = False
                 config['ob_data_Decompressed'] = False
@@ -223,9 +240,13 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
                 ob_csv_file_path = os.path.join(os.getcwd(), '../../../', 'data', file_name, file_name + '.csv')
                 decompressed_csv_path = os.path.join(os.getcwd(), '../../../', 'data', file_name, file_name + '.csv')
 
-            # set up seeds, args.seed supported
-            torch.manual_seed(seed=args.seed)
-            np.random.seed(seed=args.seed)
+            elif config['ob_data_Decompressed']:
+                ob_csv_file_path = os.path.join(os.getcwd(), '../../../', 'data', file_name, 'ob_' + file_name + '.csv')
+                decompressed_csv_path = os.path.join(os.getcwd(), '../../../', 'data', file_name, 'ob_decompressed_' + file_name + '.csv')
+
+            # # set up seeds, args.seed supported
+            # torch.manual_seed(seed=args.seed)
+            # np.random.seed(seed=args.seed)
 
             is_cuda = not args.disable_cuda and torch.cuda.is_available()
             is_cuda = False
@@ -236,22 +257,14 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
             else:
                 args.device = torch.device("cpu")
 
-            # initialize the early_stopping object
-            early_stopping = EarlyStopping(patience=15, verbose=True)
-
-            model = GIN(
-                args.num_layers, args.num_mlp_layers,
-                args.input_features, args.hidden_dim, args.nb_classes,
-                args.final_dropout, args.learn_eps,
-                args.graph_pooling_type, args.neighbor_pooling_type, args.save_embeddings).to(args.device)
-            optimizer = optim.Adam(model.parameters(), lr=args.lr)
-
-            scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
             if config['raw_data']:
                 graph_path = os.path.join('../../../data', file_name, file_name + '.bin')
+                # graph_path = os.path.join('../../../data/all_houses/all_houses_raw.bin')
             elif config['ob_data_compressed']:
                 graph_path = os.path.join('../../../data', file_name,  'ob_' + file_name + '.bin')
-
+            elif config['ob_data_Decompressed']:
+                decompressedGraphPath = os.path.join('../../../data', file_name, file_name + '.bin')
+                graph_path = os.path.join('../../../data', file_name, 'ob_' + file_name + '.bin')
 
             graphs = []
             labels = []
@@ -337,6 +350,10 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
             else:
                 graphs, labels = load_graphs(graph_path)
                 labels = list(labels['glabel'].numpy())
+                if config['ob_data_Decompressed']:
+                    DecompressedGraphs, DecompressedLabels = load_graphs(decompressedGraphPath)
+                    DecompressedLabels = list(DecompressedLabels['glabel'].numpy())
+
             print(len(graphs))
 
             total_num_iteration_for_LOOCV = 0
@@ -358,11 +375,29 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
 
             uniqueIndex = getUniqueStartIndex(compressed_csv)
 
+
+            # Required in case of ob Decompressed, when you want test index from
+            # Decompressed csv rather than from OB CSV
+            uniqueIndex_decompressed = getUniqueStartIndex(decompressed_csv)
+
             # Mapped Activity as per the config/generalizing the activities not present in all csvs'
 
             loo = LeaveOneOut()
 
             for train_index, test_index in loo.split(uniqueIndex):
+                model = GIN(
+                    args.num_layers, args.num_mlp_layers,
+                    args.input_features, args.hidden_dim, args.nb_classes,
+                    args.final_dropout, args.learn_eps,
+                    args.graph_pooling_type, args.neighbor_pooling_type, args.save_embeddings).to(args.device)
+                optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+
+
+                scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
+                # initialize the early_stopping object
+                early_stopping = EarlyStopping(patience=15, verbose=True)
+
                 print('----------------------------------------------------------------------------------------------')
                 print('\n\n split: ', total_num_iteration_for_LOOCV)
                 total_num_iteration_for_LOOCV += 1
@@ -370,26 +405,33 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
                 # Get start and end of test dataset
                 start, end = getStartAndEndIndex(compressed_csv, uniqueIndex[test_index])
                 # make dataframe for train, skip everything b/w test start and test end. rest everything is train.
+
+
                 train_graphs = graphs[:start] + graphs[end:]
                 train_labels = labels[:start] + labels[end:]
 
-                # Divide train, test and val graphs and labels
+                # Divide train, test and val dataframe
                 val_graphs = train_graphs[:int(len(train_graphs) * args.split_ratio)]
                 val_labels = train_labels[:int(len(train_labels) * args.split_ratio)]
 
                 train_graphs = train_graphs[int(len(train_graphs) * args.split_ratio):]
-                train_labels = train_labels[:int(len(train_labels) * args.split_ratio)]
+                train_labels = train_labels[int(len(train_labels) * args.split_ratio):]
+
 
                 # Only Test index will be picked from decompressed because
                 # Only while evaluating we are decompressing
-                # if config['ob_data_Decompressed']:
-                #     uniqueIndex_decompressed = getUniqueStartIndex(decompressed_csv)
-                #     start, end = getStartAndEndIndex(decompressed_csv, uniqueIndex_decompressed[test_index])
-                #     testDataFrame = graphs[start:end]
-                # else:
+                if config['ob_data_Decompressed']:
+                    start, end = getStartAndEndIndex(decompressed_csv, uniqueIndex_decompressed[test_index])
+                    test_graphs = DecompressedGraphs[start:end]
+                    test_labels = DecompressedLabels[start:end]
+                else:
+                    test_graphs = graphs[start:end]
+                    test_labels = labels[start:end]
 
-                test_graphs = graphs[start:end]
-                test_labels = labels[start:end]
+                # Means this the last split and test has 1 element in it. skip it and continue, because this causes
+                # the code to break. Kind of easy fix.
+                if start == end:
+                    continue
 
                 trainDataset = GraphHouseDataset(train_graphs, train_labels)
                 valDataset = GraphHouseDataset(val_graphs, val_labels)
@@ -405,20 +447,12 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
                     collate_fn=collate, seed=args.seed, shuffle=shuffle,
                     split_name='fold10', fold_idx=args.fold_idx, save_embeddings= args.save_embeddings).train_valid_loader()
 
+
                 testloader = GraphDataLoader(
                     testDataset, batch_size=args.batch_size, device=args.device,
                     collate_fn=collate, seed=args.seed, shuffle=shuffle,
                     split_name='fold10', fold_idx=args.fold_idx, save_embeddings=args.save_embeddings).train_valid_loader()
 
-
-                # or split_name='rand', split_ratio=0.7
-
-                # if os.path.exists('./checkpoint.pt'):
-                #     print('loading saved checkpoint ')
-                #     state = torch.load('./checkpoint.pt')
-                #     model.load_state_dict(state)
-                    # model.load_state_dict(state['state_dict'])
-                    # optimizer.load_state_dict(state['optimizer'])
 
                 criterion = nn.CrossEntropyLoss()  # default reduce is true
 
@@ -426,7 +460,7 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
                 training(model, trainloader, validloader, optimizer, criterion, scheduler, early_stopping)
 
                 # Load Best Model from early stopping
-                path = './checkpoint.pt'
+                path = './checkpoint.pth'
                 if os.path.isfile(path):
                     print("=> loading checkpoint '{}'".format(path))
                     checkpoint = torch.load(path, map_location=torch.device('cpu'))
@@ -445,8 +479,9 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
                     total_f1_for_LOOCV.append(test_f1_score)
                     total_per_class_accuracy.append(test_per_class_accuracy)
                     total_confusion_matrix.append(test_confusion_matrix)
-                    break
 
+                    print('test set - average loss: {:.4f}, accuracy: {:.0f}%  test_f1_score: {:.4f} '
+                          .format(test_loss, 100. * test_acc, test_f1_score))
 
             house_results_dictionary = {}
 
@@ -462,19 +497,24 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
 
             house_results_dictionary['confusion_matrix'] = total_confusion_matrix
 
-            if not os.path.exists(os.path.join('../../../logs', file_name)):
-                os.mkdir(os.path.join('../../../logs', file_name))
+            house_results_dictionary['house_name'] = file_name
 
-            if config['raw_data']:
-                np.save(os.path.join('../../../logs', file_name, 'graph' + '_' + file_name + '_results_dict.npy'),
-                        house_results_dictionary)
-            elif config['ob_data_compressed']:
-                np.save(os.path.join('../../../logs', file_name, 'graph_ob' + '_' + file_name + '_results_dict.npy'),
-                        house_results_dictionary)
+            results_list.append(house_results_dictionary)
+
+            if not os.path.exists(os.path.join('../../../logs', 'singleHouseGraphClassification')):
+                os.mkdir(os.path.join('../../../logs', 'singleHouseGraphClassification'))
 
             print('\n\n\n\n\n\n Finished house', file_name, '\n\n\n\n')
 
-
+        if config['ob_data_compressed']:
+            print('saved')
+            np.save(os.path.join('../../../logs/singleHouseGraphClassification' 'ob_compressed.npy'), results_list)
+        elif config['ob_data_Decompressed']:
+            print('saved')
+            np.save(os.path.join('../../../logs/singleHouseGraphClassification' 'ob_decompressed.npy'), results_list)
+        elif config['raw_data']:
+            print('saved')
+            np.save(os.path.join('../../../logs/singleHouseGraphClassification' 'raw.npy'), results_list)
 
 def training(model, trainloader, validloader, optimizer, criterion, scheduler, early_stopping):
     for epoch in range(args.epochs):
@@ -502,7 +542,7 @@ def training(model, trainloader, validloader, optimizer, criterion, scheduler, e
 
             # print('val per_class accuracy', val_per_class_accuracy)
 
-            # early_stopping needs the validation loss to check if it has decresed,
+            # early_stopping needs the validation loss to check if it has decreased,
             # and if it has, it will make a checkpoint of the current model
             early_stopping(val_f1_score, model)
 

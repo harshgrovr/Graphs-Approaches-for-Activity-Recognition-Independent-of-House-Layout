@@ -90,16 +90,13 @@ def train(args, net, trainloader, optimizer, criterion, epoch):
         loss.backward()
         optimizer.step()
 
-        # report
-        # bar.set_description('epoch-{}'.format(epoch))
-    # bar.close()
     # the final batch will be aligned
     running_loss = running_loss / total_iters
 
     return running_loss
 
 
-def eval_net(args, net, dataloader, criterion, text = 'train'):
+def eval_net(args, net, dataloader, criterion, run_config, house_name, text = 'train'):
     net.eval()
 
     total = 0
@@ -132,12 +129,14 @@ def eval_net(args, net, dataloader, criterion, text = 'train'):
         for t, p in zip(labels.view(-1), predicted.view(-1)):
             confusion_matrix[t.long(), p.long()] += 1
 
-    if args.save_embeddings:
-        hiddenLayerEmbeddings = hiddenLayerEmbeddings.detach().cpu().numpy()
-        hiddenLayerEmbeddings = hiddenLayerEmbeddings[1:]
-        df = pd.DataFrame(hiddenLayerEmbeddings)
-        df['activity'] = np.array(all_labels)
-        df.to_csv("../../../data/all_houses/graph_embeddings_" + text + ".csv", index=False)
+        if args.save_embeddings:
+            hiddenLayerEmbeddings = hiddenLayerEmbeddings.detach().cpu().numpy()
+            hiddenLayerEmbeddings = hiddenLayerEmbeddings[1:]
+            df = pd.DataFrame(hiddenLayerEmbeddings)
+            df['activity'] = np.array(all_labels)
+            df.to_csv("../../../data/" + house_name + "/" +  run_config + "_graph_embeddings.csv", index=False)
+            # df.to_csv("../../../../../Research/data/all_houses/" + run_config + "_graph_embeddings.csv", index=False)
+
 
     np.save('./' + text + '_confusion_matrix.npy', confusion_matrix)
 
@@ -195,8 +194,7 @@ def _split_rand(labels, split_ratio=0.8, seed=0, shuffle=True):
     return train_idx, valid_idx
 
 
-def main(args, shuffle=True):
-
+def main(args, run_config, house_name, shuffle=True):
 
     # set up seeds, args.seed supported
     torch.manual_seed(seed=args.seed)
@@ -225,7 +223,10 @@ def main(args, shuffle=True):
 
     file_names = ['ordonezB', 'houseB', 'houseC', 'houseA', 'ordonezA']
 
-    graph_path = os.path.join('../../../data/all_houses/all_houses.bin')
+    if run_config is 'ob':
+        graph_path = os.path.join('../../../data/all_houses/all_houses_ob.bin')
+    elif run_config is 'raw':
+        graph_path = os.path.join('../../../data/all_houses/all_houses_raw.bin')
 
     graphs = []
     labels = []
@@ -237,10 +238,17 @@ def main(args, shuffle=True):
         print('\t\t\t\t\t' + file_name + '\t\t\t\t\t\t\t')
         print('*******************************************************************')
         print('\n\n\n\n')
-        house = pd.read_csv('../../../data/' + file_name + '/ob_' + file_name + '.csv')
+        if run_config is 'ob':
+            house = pd.read_csv('../../../data/' + file_name + '/ob_' + file_name + '.csv')
+            lastChangeTimeInMinutes = pd.read_csv('../../../data/' + file_name + '/' + 'ob-house' + '-sensorChangeTime.csv')
+        elif run_config is 'raw':
+            house = pd.read_csv('../../../data/' + file_name + '/' + file_name + '.csv')
+            lastChangeTimeInMinutes = pd.read_csv('../../../data/' + file_name + '/' + 'house' + '-sensorChangeTime.csv')
+
         nodes = pd.read_csv('../../../data/' + file_name + '/nodes.csv')
         edges = pd.read_csv('../../../data/' + file_name + '/bidrectional_edges.csv')
-        lastChangeTimeInMinutes = pd.read_csv('../../../data/' + file_name + '/' + 'ob-house' + '-sensorChangeTime.csv')
+
+
 
         u = edges['Src']
         v = edges['Dst']
@@ -312,17 +320,29 @@ def main(args, shuffle=True):
     total_ids = np.arange(len(labels), dtype=int)
     valid_idx = []
     for key, val in args.house_start_end_dict.items():
+        if key == house_name:
+            continue
         start, end = val
         valid_idx.extend(np.arange(start, end))
 
-    # ordonezB Length
-    test_idx = np.arange(0, 2488)
-    # test_idx = np.arange(0, 30470)
+    if run_config is 'ob':
+        config["house_start_end_dict"] = [{'ordonezB': (0, 2487)}, {'houseB': (2487, 4636)},
+                                          {'houseC': (4636, 6954)}, {'houseA': (6954, 7989)},
+                                          {'ordonezA': (7989, 8557)}]
+    elif run_config is 'raw':
+        config["house_start_end_dict"] = [{'ordonezB': (0, 30470)}, {'houseB': (30470, 51052)},
+                                          {'houseC': (51052, 77539)}, {'houseA': (77539, 114626)},
+                                          {'ordonezA': (114626, 134501)}]
 
-    ### Save all the embeddings
-    if args.save_embeddings:
-        valid_idx = []
-        test_idx = []
+    # ordonezB Length
+
+    for x in range(len(config["house_start_end_dict"])):
+        key,  value = list(config["house_start_end_dict"][x].items())[0]
+        if key is house_name:
+            start, end = config["house_start_end_dict"][x][house_name]
+            break
+
+    test_idx = np.arange(start, end)
 
 
 
@@ -359,22 +379,11 @@ def main(args, shuffle=True):
 
 
     # or split_name='rand', split_ratio=0.7
-
-    if os.path.exists('./checkpoint.pt'):
-        print('loading saved checkpoint ')
-        state = torch.load('./checkpoint.pt')
-        model.load_state_dict(state)
-        # model.load_state_dict(state['state_dict'])
-        # optimizer.load_state_dict(state['optimizer'])
-
     criterion = nn.CrossEntropyLoss()  # default reduce is true
 
     for epoch in range(args.epochs):
-        if not args.save_embeddings:
-            train(args, model, trainloader, optimizer, criterion, epoch)
-            scheduler.step()
-        else:
-            model.eval()
+        train(args, model, trainloader, optimizer, criterion, epoch)
+        scheduler.step()
 
         # early_stopping needs the F1 score to check if it has increased,
         # and if it has, it will make a checkpoint of the current model
@@ -382,32 +391,26 @@ def main(args, shuffle=True):
         if epoch % 10 == 9:
             print('epoch: ', epoch)
             train_loss, train_acc, train_f1_score, train_per_class_accuracy = eval_net(
-                args, model, trainloader, criterion)
+                args, model, trainloader, criterion, run_config, house_name)
 
             print('train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
                     .format(train_loss, 100. * train_acc, train_f1_score))
 
-            if args.save_embeddings:
-                break
-
-            test_loss, test_acc, test_f1_score, test_per_class_accuracy = eval_net(
-                args, model, testloader, criterion)
-
-            print('test set - average loss: {:.4f}, accuracy: {:.0f}%  test_f1_score: {:.4f} '
-                  .format(test_loss, 100. * test_acc, test_f1_score))
-
             # print('train per_class accuracy', test_per_class_accuracy)
 
-
             valid_loss, valid_acc, val_f1_score, val_per_class_accuracy = eval_net(
-                args, model, validloader, criterion, text='val')
+                args, model, validloader, criterion, run_config, house_name, text='val')
 
             print('valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
                     .format(valid_loss, 100. * valid_acc, val_f1_score))
 
+            test_loss, test_acc, test_f1_score, test_per_class_accuracy = eval_net(
+                args, model, testloader, criterion, run_config, house_name)
+
+            print('test set - average loss: {:.4f}, accuracy: {:.0f}%  test_f1_score: {:.4f} '
+                  .format(test_loss, 100. * test_acc, test_f1_score))
+
             # print('val per_class accuracy', val_per_class_accuracy)
-
-
 
             # early_stopping needs the validation loss to check if it has decresed,
             # and if it has, it will make a checkpoint of the current model
@@ -418,35 +421,50 @@ def main(args, shuffle=True):
                 break
 
 
-            # checkpoint = {'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
-            # torch.save(checkpoint, './saved_model/saved_model')
+    args.save_embeddings = True
+    model = GIN(
+        args.num_layers, args.num_mlp_layers,
+        args.input_features, args.hidden_dim, args.nb_classes,
+        args.final_dropout, args.learn_eps,
+        args.graph_pooling_type, args.neighbor_pooling_type, args.save_embeddings).to(args.device)
+    model.eval()
 
-        if not args.filename == "":
-            with open(args.filename, 'a') as f:
-                f.write('%s %s %s %s' % (
-                    args.dataset,
-                    args.learn_eps,
-                    args.neighbor_pooling_type,
-                    args.graph_pooling_type
-                ))
-                f.write("\n")
-                f.write("%f %f %f %f" % (
-                    train_loss,
-                    train_acc,
-                    valid_loss,
-                    valid_acc
-                ))
-                f.write("\n")
+    if args.save_embeddings:
+        if os.path.exists('./checkpoint.pth'):
+            print('loading saved checkpoint')
+            state = torch.load('./checkpoint.pth')
+            model.load_state_dict(state)
+            # model.load_state_dict(state['state_dict'])
+            # optimizer.load_state_dict(state['optimizer'])
+    test_loss, test_acc, test_f1_score, test_per_class_accuracy = eval_net(
+        args, model, testloader, criterion, run_config, house_name)
+
+    house_results_dictionary = {}
+    house_results_dictionary['accuracy'] = test_acc
+
+    house_results_dictionary['f1_score'] = test_f1_score
+
+    house_results_dictionary['test_per_class_accuracy'] = test_per_class_accuracy
+
+    print('test set - average loss: {:.4f}, accuracy: {:.0f}%  test_f1_score: {:.4f} '
+          .format(test_loss, 100. * test_acc, test_f1_score))
+
+    return house_results_dictionary
 
 
 if __name__ == '__main__':
     args = Parser(description='GIN').args
     print('show all arguments configuration...')
     print(args)
+    for run_config in ['ob', 'raw']:
+        results_list = []
+        for house_name in ['ordonezB', 'houseB', 'houseC', 'houseA', 'ordonezA']:
+            print(house_name, '\n\n')
+            # Train and then Save embeddings
+            args.save_embeddings = False
+            house_results_dictionary = main(args, run_config, house_name,  shuffle=False)
+            results_list.append(house_results_dictionary)
+        if not os.path.exists(os.path.join('../../../logs', 'graph_classification')):
+            os.mkdir(os.path.join('../../../logs', 'graph_classification'))
 
-    # Save Embeddings
-    if args.save_embeddings:
-        print('\n \n !!!!!!!       Saving the embeddings    !!!!!!!!!! \n\n')
-        main(args, shuffle=False)
-    else:
-        main(args)
+        np.save(os.path.join('../../../logs/graph_classification',  run_config + '.npy'), results_list)
