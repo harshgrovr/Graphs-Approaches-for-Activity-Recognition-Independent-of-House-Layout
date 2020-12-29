@@ -13,6 +13,7 @@ already present.
 import random
 import sys
 import numpy as np
+from setuptools.command.test import test
 from sklearn.metrics import f1_score
 from tqdm import tqdm
 
@@ -209,7 +210,7 @@ def getUniqueStartIndex(df):
 
 def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
     file_names = ['ordonezB', 'houseB', 'houseC', 'houseA', 'ordonezA']
-
+    file_names = ['ordonezB']
     # run_time_configs = ['ob_data_compressed', 'raw_data', 'ob_data_Decompressed']
     run_time_configs = ['raw_data']
     for run_configuration in run_time_configs:
@@ -385,6 +386,7 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
             loo = LeaveOneOut()
 
             for train_index, test_index in loo.split(uniqueIndex):
+
                 model = GIN(
                     args.num_layers, args.num_mlp_layers,
                     args.input_features, args.hidden_dim, args.nb_classes,
@@ -396,7 +398,7 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
 
                 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
                 # initialize the early_stopping object
-                early_stopping = EarlyStopping(patience=15, verbose=True)
+                early_stopping = EarlyStopping(patience=10, verbose=True)
 
                 print('----------------------------------------------------------------------------------------------')
                 print('\n\n split: ', total_num_iteration_for_LOOCV)
@@ -508,13 +510,13 @@ def main(args, shuffle=True, decompressed_csv_path=None, ob_csv_file_path=None):
 
         if config['ob_data_compressed']:
             print('saved')
-            np.save(os.path.join('../../../logs/singleHouseGraphClassification' 'ob_compressed.npy'), results_list)
+            np.save(os.path.join('../../../logs/singleHouseGraphClassification', 'ob_compressed.npy'), results_list)
         elif config['ob_data_Decompressed']:
             print('saved')
-            np.save(os.path.join('../../../logs/singleHouseGraphClassification' 'ob_decompressed.npy'), results_list)
+            np.save(os.path.join('../../../logs/singleHouseGraphClassification', 'ob_decompressed.npy'), results_list)
         elif config['raw_data']:
             print('saved')
-            np.save(os.path.join('../../../logs/singleHouseGraphClassification' 'raw.npy'), results_list)
+            np.save(os.path.join('../../../logs/singleHouseGraphClassification', 'raw.npy'), results_list)
 
 def training(model, trainloader, validloader, optimizer, criterion, scheduler, early_stopping):
     for epoch in range(args.epochs):
@@ -529,16 +531,16 @@ def training(model, trainloader, validloader, optimizer, criterion, scheduler, e
             train_loss, train_acc, train_f1_score, train_per_class_accuracy,_ = eval_net(
                 args, model, trainloader, criterion)
 
-            print('train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
-                  .format(train_loss, 100. * train_acc, train_f1_score))
+            # print('train set - average loss: {:.4f}, accuracy: {:.0f}%  train_f1_score: {:.4f} '
+            #       .format(train_loss, 100. * train_acc, train_f1_score))
 
             # print('train per_class accuracy', test_per_class_accuracy)
 
             valid_loss, valid_acc, val_f1_score, val_per_class_accuracy, _ = eval_net(
                 args, model, validloader, criterion, text='val')
-
-            print('valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
-                  .format(valid_loss, 100. * valid_acc, val_f1_score))
+            #
+            # print('valid set - average loss: {:.4f}, accuracy: {:.0f}% val_f1_score {:.4f}:  '
+            #       .format(valid_loss, 100. * valid_acc, val_f1_score))
 
             # print('val per_class accuracy', val_per_class_accuracy)
 

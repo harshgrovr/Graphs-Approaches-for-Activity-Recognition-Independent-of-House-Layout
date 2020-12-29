@@ -129,13 +129,13 @@ def eval_net(args, net, dataloader, criterion, run_config, house_name, text = 't
         for t, p in zip(labels.view(-1), predicted.view(-1)):
             confusion_matrix[t.long(), p.long()] += 1
 
-        if args.save_embeddings:
-            hiddenLayerEmbeddings = hiddenLayerEmbeddings.detach().cpu().numpy()
-            hiddenLayerEmbeddings = hiddenLayerEmbeddings[1:]
-            df = pd.DataFrame(hiddenLayerEmbeddings)
-            df['activity'] = np.array(all_labels)
-            df.to_csv("../../../data/" + house_name + "/" +  run_config + "_graph_embeddings.csv", index=False)
-            # df.to_csv("../../../../../Research/data/all_houses/" + run_config + "_graph_embeddings.csv", index=False)
+    if args.save_embeddings:
+        hiddenLayerEmbeddings = hiddenLayerEmbeddings.detach().cpu().numpy()
+        hiddenLayerEmbeddings = hiddenLayerEmbeddings[1:]
+        df = pd.DataFrame(hiddenLayerEmbeddings)
+        df['activity'] = np.array(all_labels)
+        df.to_csv("../../../data/" + house_name + "/" +  run_config + "_graph_embeddings.csv", index=False)
+        df.to_csv("../../../../../Research/data/all_houses/" + run_config + "_graph_embeddings.csv", index=False)
 
 
     np.save('./' + text + '_confusion_matrix.npy', confusion_matrix)
@@ -247,7 +247,6 @@ def main(args, run_config, house_name, shuffle=True):
 
         nodes = pd.read_csv('../../../data/' + file_name + '/nodes.csv')
         edges = pd.read_csv('../../../data/' + file_name + '/bidrectional_edges.csv')
-
 
 
         u = edges['Src']
@@ -456,7 +455,11 @@ if __name__ == '__main__':
     args = Parser(description='GIN').args
     print('show all arguments configuration...')
     print(args)
-    for run_config in ['ob', 'raw']:
+    if not os.path.exists(os.path.join('../../../logs', 'graph_classification')):
+        os.mkdir(os.path.join('../../../logs', 'graph_classification'))
+
+    # for run_config in ['ob', 'raw']:
+    for run_config in ['raw']:
         results_list = []
         for house_name in ['ordonezB', 'houseB', 'houseC', 'houseA', 'ordonezA']:
             print(house_name, '\n\n')
@@ -464,7 +467,8 @@ if __name__ == '__main__':
             args.save_embeddings = False
             house_results_dictionary = main(args, run_config, house_name,  shuffle=False)
             results_list.append(house_results_dictionary)
-        if not os.path.exists(os.path.join('../../../logs', 'graph_classification')):
-            os.mkdir(os.path.join('../../../logs', 'graph_classification'))
+            print('saving..... ', house_name)
+            np.save(os.path.join('../../../logs/graph_classification', run_config + '.npy'), results_list)
 
-        np.save(os.path.join('../../../logs/graph_classification',  run_config + '.npy'), results_list)
+
+
