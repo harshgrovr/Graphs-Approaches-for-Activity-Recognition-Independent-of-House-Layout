@@ -22,7 +22,7 @@ class Parser():
             choices=['MUTAG', 'COLLAB', 'IMDBBINARY', 'IMDBMULTI'],
             help='name of dataset (default: Graph obtained from OB Representation of each house)')
         self.parser.add_argument(
-            '--batch_size', type=int, default=64,
+            '--batch_size', type=int, default=256,
             help='batch size for training and validation (default: 32)')
         self.parser.add_argument(
             '--fold_idx', type=int, default=0,
@@ -41,7 +41,7 @@ class Parser():
 
         # net
         self.parser.add_argument(
-            '--num_layers', type=int, default=3,
+            '--num_layers', type=int, default=5,
             help='number of layers (default: 5)')
         self.parser.add_argument(
             '--num_mlp_layers', type=int, default=2,
@@ -68,7 +68,7 @@ class Parser():
             '--seed', type=int, default=0,
             help='random seed (default: 0)')
         self.parser.add_argument(
-            '--epochs', type=int, default=200,
+            '--epochs', type=int, default=500,
             help='number of epochs to train (default: 350)')
         self.parser.add_argument(
             '--lr', type=float, default=0.0001,
@@ -86,9 +86,21 @@ class Parser():
             '--input_features', type=int, default=4,
             help='Input graph features')
         self.parser.add_argument(
-            '--house_start_end_dict', type=dict, default=  {'ordonezB': (767, 892), 'houseB': (4015, 4033), 'houseC': (4610, 4619),
-                                 'houseA': (7228, 7241), 'ordonezA': (8403, 8427)},
-            help='Input graph features')
+            '--split_ratio', type=float, default=0.2,
+            help='Split Ratio of val data ratio from train data')
+        self.parser.add_argument(
+            '--num_workers', type=int, default=10,
+            help='Split Ratio of val data ratio from train data')
+
+
+        # self.parser.add_argument(
+        #     '--house_start_end_dict', type=dict, default=  {'houseB': (33784, 35224),
+        #                                                     'houseC': (51052, 51123), 'houseA': (77539, 78960),
+        #                                                     'ordonezA': (114626, 115919)}, help='Input graph features
+        self.parser.add_argument(
+                '--house_start_end_dict', type=dict, default= {'ordonezB': (767, 892), 'houseB': (4039, 4058),
+                                                                'houseC': (4636, 4645), 'houseA': (7254, 7267),
+        'ordonezA': (8429, 8453)}, help='Input graph features')
 
         # done
         self.args = self.parser.parse_args()

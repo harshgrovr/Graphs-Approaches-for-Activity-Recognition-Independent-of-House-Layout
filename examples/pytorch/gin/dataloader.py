@@ -61,7 +61,7 @@ class GraphDataLoader():
             sampler = self.weightedRandomSampler(labels)
 
         self.loader = DataLoader(
-            dataset, sampler=sampler,
+            dataset, sampler=sampler, num_workers=12,
             batch_size=batch_size, collate_fn=collate_fn, **self.kwargs)
 
 
@@ -88,7 +88,7 @@ class GraphDataLoader():
     def weightedRandomSampler(self, labels):
         #Class Weighting
         labels_unique, counts = np.unique(labels, return_counts=True)
-        print('Unique labels: {}'.format(labels_unique))
+        # print('Unique labels: {}'.format(labels_unique))
 
         class_weights = np.zeros(np.max(labels_unique) + 1, dtype=float)
 
