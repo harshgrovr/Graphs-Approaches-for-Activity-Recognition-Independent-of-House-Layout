@@ -134,9 +134,8 @@ def eval_net(args, net, dataloader, criterion, run_config, house_name, text = 't
         hiddenLayerEmbeddings = hiddenLayerEmbeddings[1:]
         df = pd.DataFrame(hiddenLayerEmbeddings)
         df['activity'] = np.array(all_labels)
-        df.to_csv("../../../data/" + house_name + "/" +  run_config + "_graph_embeddings.csv", index=False)
-        df.to_csv("../../../../../Research/data/all_houses/" + run_config + "_graph_embeddings.csv", index=False)
-
+        df.to_csv("../../../data/" + house_name + "/" + run_config + "_graph_embeddings.csv", index=False)
+        df.to_csv("../../../../../Research/data/" + house_name + "/" + run_config + "_graph_embeddings.csv", index=False)
 
     np.save('./' + text + '_confusion_matrix.npy', confusion_matrix)
 
@@ -179,7 +178,7 @@ class GraphHouseDataset():
         return len(self.graphs)
 
 
-def _split_rand(labels, split_ratio=0.8, seed=0, shuffle=True):
+def _split_rand(labels, split_ratio=0.8, seed=0, shuffle=False):
     num_entries = len(labels)
     indices = list(range(num_entries))
     np.random.seed(seed)
@@ -194,7 +193,7 @@ def _split_rand(labels, split_ratio=0.8, seed=0, shuffle=True):
     return train_idx, valid_idx
 
 
-def main(args, run_config, house_name, shuffle=True):
+def main(args, run_config, house_name, shuffle=False):
 
     # set up seeds, args.seed supported
     torch.manual_seed(seed=args.seed)
@@ -217,6 +216,7 @@ def main(args, run_config, house_name, shuffle=True):
         args.input_features, args.hidden_dim, args.nb_classes,
         args.final_dropout, args.learn_eps,
         args.graph_pooling_type, args.neighbor_pooling_type, args.save_embeddings).to(args.device)
+
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
@@ -419,7 +419,6 @@ def main(args, run_config, house_name, shuffle=True):
                 print("Early stopping")
                 break
 
-
     args.save_embeddings = True
     model = GIN(
         args.num_layers, args.num_mlp_layers,
@@ -427,6 +426,13 @@ def main(args, run_config, house_name, shuffle=True):
         args.final_dropout, args.learn_eps,
         args.graph_pooling_type, args.neighbor_pooling_type, args.save_embeddings).to(args.device)
     model.eval()
+    # making loader here because weighted sampler is off for testing and it is on for other parts.
+    # Since we want embeddings in order so sampler is off for testing.
+    testDataset = GraphHouseDataset(test_graphs, test_labels)
+    testloader = GraphDataLoader(
+        testDataset, batch_size=args.batch_size, device=args.device,
+        collate_fn=collate, seed=args.seed, shuffle=shuffle,
+        split_name='fold10', fold_idx=args.fold_idx, save_embeddings=args.save_embeddings).train_valid_loader()
 
     if args.save_embeddings:
         if os.path.exists('./checkpoint.pth'):
