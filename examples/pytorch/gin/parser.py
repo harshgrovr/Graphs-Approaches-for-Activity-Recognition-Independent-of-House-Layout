@@ -41,7 +41,7 @@ class Parser():
 
         # net
         self.parser.add_argument(
-            '--num_layers', type=int, default=5,
+            '--num_layers', type=int, default=3,
             help='number of layers (default: 5)')
         self.parser.add_argument(
             '--num_mlp_layers', type=int, default=2,
@@ -71,7 +71,7 @@ class Parser():
             '--epochs', type=int, default=500,
             help='number of epochs to train (default: 350)')
         self.parser.add_argument(
-            '--lr', type=float, default=0.0001,
+            '--lr', type=float, default=0.001,
             help='learning rate (default: 0.01)')
         self.parser.add_argument(
             '--final_dropout', type=float, default=0.5,
