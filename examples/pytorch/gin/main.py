@@ -17,6 +17,8 @@ import pandas as pd
 import dgl.nn.pytorch as dglnn
 import torch.nn.functional as F
 import dgl
+from torchsummary import summary
+
 
 from dgl.data.utils import save_graphs, load_graphs
 
@@ -76,15 +78,17 @@ def train(args, net, trainloader, optimizer, criterion, epoch):
     # bar = tqdm(range(total_iters), unit='batch', position=2, file=sys.stdout)
 
     for (graphs, labels) in trainloader:
+
         # batch graphs will be shipped to device in forward part of model
         labels = labels.to(args.device)
         feat = graphs.ndata.pop('attr').to(args.device)
         graphs = graphs.to(args.device)
         outputs, _ = net(graphs, feat)
 
+
+
         loss = criterion(outputs, labels)
         running_loss += loss.item()
-
         # backprop
         optimizer.zero_grad()
         loss.backward()
@@ -217,6 +221,8 @@ def main(args, run_config, house_name, shuffle=False):
         args.final_dropout, args.learn_eps,
         args.graph_pooling_type, args.neighbor_pooling_type, args.save_embeddings).to(args.device)
 
+
+    print(model)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
@@ -303,7 +309,6 @@ def main(args, run_config, house_name, shuffle=False):
             except:
                 activity = house.iloc[i, 2]
                 labels.append(getIDFromClassName(activity, config))
-
             graphs.append(g)
 
         graph_labels = {"glabel": torch.tensor(labels)}
@@ -426,6 +431,7 @@ def main(args, run_config, house_name, shuffle=False):
         args.final_dropout, args.learn_eps,
         args.graph_pooling_type, args.neighbor_pooling_type, args.save_embeddings).to(args.device)
     model.eval()
+
     # making loader here because weighted sampler is off for testing and it is on for other parts.
     # Since we want embeddings in order so sampler is off for testing.
     testDataset = GraphHouseDataset(test_graphs, test_labels)

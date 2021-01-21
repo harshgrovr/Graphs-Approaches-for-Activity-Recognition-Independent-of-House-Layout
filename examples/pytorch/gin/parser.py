@@ -41,7 +41,7 @@ class Parser():
 
         # net
         self.parser.add_argument(
-            '--num_layers', type=int, default=2,
+            '--num_layers', type=int, default=3,
             help='number of layers (default: 5)')
         self.parser.add_argument(
             '--num_mlp_layers', type=int, default=2,
